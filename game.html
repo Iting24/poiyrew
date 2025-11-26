@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小明的完美一天 V3.0: 最終回</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --term-color: #0f0;
+            --warn-color: #f00;
+            --highlight: #ffeb3b;
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+        
+        * { box-sizing: border-box; touch-action: manipulation; }
+
+        body {
+            background-color: var(--bg-color);
+            color: #ccc;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* === 視覺升級：CRT 螢幕濾鏡 === */
+        #crt-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* === 遊戲主容器 (RWD) === */
+        #game-stage {
+            width: 100%;
+            height: 100%;
+            max-width: 1024px;
+            position: relative;
+            background: #111;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #333;
+            box-shadow: 0 0 50px rgba(0,255,0,0.1);
+            perspective: 1000px; /* 3D 效果 */
+        }
+
+        /* === 頂部資訊列 === */
+        #hud {
+            padding: 10px 20px;
+            background: #222;
+            border-bottom: 2px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            z-index: 10;
+        }
+        .progress-bar-bg { width: 100px; height: 10px; background: #333; display: inline-block; margin-left: 10px; }
+        .progress-bar-fill { height: 100%; background: var(--warn-color); width: 0%; transition: width 0.3s; }
+
+        /* === 收藏庫按鈕 === */
+        #collection-btn {
+            background: none; border: 1px solid #666; color: #888; cursor: pointer; padding: 5px 10px;
+        }
+
+        /* === 3D 場景區 === */
+        #scene-viewport {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+        
+        .scene-content {
+            text-align: center;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .emoji-actor {
+            font-size: clamp(80px, 15vw, 150px);
+            display: block;
+            text-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .location-tag {
+            background: var(--highlight);
+            color: #000;
+            padding: 5px 15px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transform: rotate(-2deg);
+            display: inline-block;
+            margin-top: 20px;
+            box-shadow: 5px 5px 0 #000;
+        }
+
+        /* === 旁白與互動區 === */
+        #control-panel {
+            min-height: 35%;
+            background: #1a1a1a;
+            border-top: 2px solid #444;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 20;
+        }
+
+        #narrator-text {
+            color: var(--highlight);
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            line-height: 1.5;
+            margin-bottom: 20px;
+            min-height: 3em;
+        }
+
+        #choices-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .btn {
+            background: #ddd;
+            color: #111;
+            border: 4px solid #555;
+            padding: 15px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 4px 4px 0 #000;
+            transition: transform 0.1s, background 0.2s;
+            flex: 1 1 40%; /* RWD: 手機上按鈕會變大 */
+            max-width: 400px;
+        }
+        .btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+        .btn:hover { background: #fff; }
+        
+        /* === 紅包小遊戲專用 UI === */
+        #red-envelope-game {
+            display: none;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 400px;
+            background: rgba(0,0,0,0.9);
+            border: 2px solid gold;
+            padding: 20px;
+            text-align: center;
+            z-index: 50;
+        }
+        #tug-bar { width: 100%; height: 20px; background: #333; margin: 20px 0; position: relative; border-radius: 10px; overflow: hidden;}
+        #tug-zone { position: absolute; left: 40%; width: 20%; height: 100%; background: rgba(0,255,0,0.3); z-index: 1; }
+        #tug-indicator { width: 10px; height: 100%; background: gold; position: absolute; left: 50%; transition: left 0.05s linear; z-index: 2; box-shadow: 0 0 10px gold;}
+
+        /* === 結局收藏庫 Modal === */
+        #ending-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            padding: 40px;
+            overflow-y: auto;
+        }
+        .ending-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .ending-card {
+            border: 1px solid #444; padding: 15px; text-align: center; opacity: 0.5; filter: grayscale(100%);
+        }
+        .ending-card.unlocked { opacity: 1; filter: grayscale(0%); border-color: gold; background: #111; }
+        .ending-icon { font-size: 2rem; margin-bottom: 10px; }
+        .close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 2rem; cursor: pointer; }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .shake { animation: shake 0.5s infinite; }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -2px); } 100% { transform: translate(1px, -1px); } }
+
+    </style>
+</head>
+<body>
+
+    <div id="crt-overlay"></div>
+
+    <div id="game-stage">
+        <div id="hud">
+            <div>壓力值: <span id="stress-display">0%</span></div>
+            <button id="collection-btn" onclick="openCollection()">🏆 結局圖鑑</button>
+        </div>
+
+        <div id="scene-viewport">
+            <div id="main-scene" class="scene-content">
+                <div class="emoji-actor" id="visual-emoji">🤖</div>
+                <div class="location-tag" id="visual-loc">SYSTEM BOOT</div>
+            </div>
+            
+            <div id="red-envelope-game">
+                <h3 style="color: gold;">🧧 紅包推拉戰</h3>
+                <p style="font-size: 0.8rem;">推辭太久=虛偽，收太快=貪婪。<br>保持指標在綠色區域 5 秒！</p>
+                <div id="tug-bar">
+                    <div id="tug-zone"></div>
+                    <div id="tug-indicator"></div>
+                </div>
+                <button class="btn" id="tug-btn" style="width:100%; background:gold; border-color:orange;">推辭 (連點!)</button>
+            </div>
+        </div>
+
+        <div id="control-panel">
+            <div id="narrator-text"></div>
+            <div id="choices-container"></div>
+        </div>
+    </div>
+
+    <div id="ending-modal">
+        <div class="close-btn" onclick="closeCollection()">×</div>
+        <h2 style="color: gold; text-align: center;">結局收藏庫</h2>
+        <p style="text-align: center; color: #888;">收集所有 5 個結局以證明你是一個完美的亞洲人。</p>
+        <div class="ending-grid" id="ending-grid"></div>
+    </div>
+
+<script>
+    // === 遊戲數據與狀態 ===
+    const gameData = {
+        stress: 0,
+        endings: JSON.parse(localStorage.getItem('xiaoming_endings')) || [],
+        isPlaying: false
+    };
+
+    const endingsList = [
+        { id: 1, icon: "💀", title: "過勞死", desc: "壓力爆表，系統崩潰。" },
+        { id: 2, icon: "⚙️", title: "完美的螺絲釘", desc: "順從所有指示，失去了自我。" },
+        { id: 3, icon: "🏃", title: "逃離迴圈", desc: "你發現了系統的漏洞並逃走了。" },
+        { id: 4, icon: "🤬", title: "社會性死亡", desc: "紅包沒拿捏好，親戚都討厭你。" },
+        { id: 5, icon: "🤡", title: "小丑", desc: "你試圖反抗，但只是在搞笑。" }
+    ];
+
+    // === 音效引擎 (Web Audio API) ===
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTone(freq, type, dur) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+    }
+
+    // === UI 更新 ===
+    const els = {
+        emoji: document.getElementById('visual-emoji'),
+        loc: document.getElementById('visual-loc'),
+        text: document.getElementById('narrator-text'),
+        btns: document.getElementById('choices-container'),
+        stress: document.getElementById('stress-display'),
+        gameStage: document.getElementById('game-stage'),
+        redGame: document.getElementById('red-envelope-game'),
+        tugIndicator: document.getElementById('tug-indicator')
+    };
+
+    function updateStress(val) {
+        gameData.stress += val;
+        if(gameData.stress < 0) gameData.stress = 0;
+        els.stress.innerText = gameData.stress + "%";
+        els.stress.style.color = gameData.stress > 80 ? 'red' : '#ccc';
+        
+        if(val > 0) {
+            playTone(150, 'sawtooth', 0.3);
+            els.gameStage.classList.add('shake');
+            setTimeout(() => els.gameStage.classList.remove('shake'), 500);
+        }
+
+        if(gameData.stress >= 100) {
+            unlockEnding(1); // Ending 1: Stress Overload
+        }
+    }
+
+    function setScene(emoji, loc) {
+        els.emoji.innerText = emoji;
+        els.loc.innerText = loc;
+        playTone(600, 'sine', 0.1);
+    }
+
+    // 打字機效果
+    let typeInterval;
+    function speak(text, callback) {
+        els.text.innerHTML = "";
+        els.btns.innerHTML = "";
+        let i = 0;
+        clearInterval(typeInterval);
+        typeInterval = setInterval(() => {
+            els.text.innerHTML += text.charAt(i);
+            if(i % 2 === 0) playTone(800 + Math.random()*200, 'square', 0.05);
+            i++;
+            if(i >= text.length) {
+                clearInterval(typeInterval);
+                if(callback) callback();
+            }
+        }, 30);
+    }
+
+    function makeButtons(options) {
+        els.btns.innerHTML = "";
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.innerText = opt.text;
+            btn.onclick = opt.action;
+            
+            // 叛逆按鈕邏輯 (移動)
+            if(opt.rebel) {
+                btn.onmouseover = () => {
+                    if(window.innerWidth > 768) { // 只在電腦版移動，手機版不移動不然太難
+                        const x = (Math.random() - 0.5) * 300;
+                        const y = (Math.random() - 0.5) * 100;
+                        btn.style.transform = `translate(${x}px, ${y}px)`;
+                    }
+                };
+                // 手機版：點擊有 50% 機率失效並嘲諷
+                if(window.innerWidth <= 768) {
+                    btn.onclick = () => {
+                        if(Math.random() > 0.5) opt.action();
+                        else speak("你按到了嗎？好像沒有喔。", () => makeButtons(options));
+                    }
+                }
+            }
+            els.btns.appendChild(btn);
+        });
+    }
+
+    // === 遊戲流程控制 ===
+
+    function initGame() {
+        gameData.stress = 0;
+        updateStress(0);
+        setScene("🛌", "臥室 - 07:00");
+        speak("又是新的一天。小明，你知道鄰居小孩已經背完圓周率後 100 位了嗎？你還在睡？", () => {
+            makeButtons([
+                { text: "驚恐起床", action: sceneBathroom },
+                { text: "五分鐘...再五分鐘", action: () => { updateStress(20); speak("你選擇了墮落。這五分鐘是你人生的污點。", () => makeButtons([{text:"起床", action:sceneBathroom}])); } }
+            ]);
+        });
+    }
+
+    function sceneBathroom() {
+        setScene("🪥", "浴室");
+        speak("照照鏡子。你的黑眼圈不夠深，代表你昨天不夠努力。現在，做出選擇。", () => {
+            makeButtons([
+                { text: "冷水洗臉 (清醒)", action: sceneRelatives },
+                { text: "看著鏡子發呆", action: () => { updateStress(10); unlockEnding(5); } } // 直接觸發小丑結局
+            ]);
+        });
+    }
+
+    function sceneRelatives() {
+        setScene("🧧", "過年聚餐");
+        speak("這是一個特殊的日子。親戚們圍繞著你。大姑姑拿出了一個厚實的紅包。注意，這是戰場。", () => {
+            makeButtons([
+                { text: "開始紅包推拉戰", action: startRedEnvelopeGame }
+            ]);
+        });
+    }
+
+    // === 迷你遊戲：紅包推拉戰 ===
+    function startRedEnvelopeGame() {
+        els.btns.innerHTML = ""; // 隱藏按鈕
+        els.redGame.style.display = 'block';
+        
+        let position = 80; // 0 = 左(推辭), 100 = 右(收下). 初始在 80 (對方硬塞)
+        let timeInZone = 0;
+        let gameLoop;
+        let isRunning = true;
+
+        const btn = document.getElementById('tug-btn');
+        // 手機與電腦的連點處理
+        btn.onclick = () => { position -= 8; playTone(200, 'square', 0.1); }; 
+
+        gameLoop = setInterval(() => {
+            if(!isRunning) return;
+
+            // 自動增加 (親戚硬塞)
+            position += 1.5; 
+            
+            // 更新 UI
+            els.tugIndicator.style.left = position + "%";
+
+            // 判斷區域 (40-60是綠色區)
+            if(position >= 40 && position <= 60) {
+                timeInZone += 0.1;
+                els.tugIndicator.style.backgroundColor = "#0f0";
+            } else {
+                els.tugIndicator.style.backgroundColor = "gold";
+            }
+
+            // 失敗判定
+            if(position <= 0) {
+                endGame(false, "你推得太用力，把紅包甩在姑姑臉上。沒禮貌。");
+            } else if (position >= 100) {
+                endGame(false, "你收得太快了！你的貪婪嘴臉被看光了。");
+            }
+
+            // 勝利判定
+            if(timeInZone >= 5) {
+                endGame(true, "完美的推拉藝術！你成功收下紅包並保住了面子。");
+            }
+
+        }, 50);
+
+        function endGame(win, msg) {
+            isRunning = false;
+            clearInterval(gameLoop);
+            els.redGame.style.display = 'none';
+            if(win) {
+                speak(msg, sceneOffice);
+            } else {
+                updateStress(50);
+                speak(msg, () => unlockEnding(4));
+            }
+        }
+    }
+
+    function sceneOffice() {
+        setScene("💻", "辦公室");
+        speak("雖然是過年，但老闆說『專案不等人』。電腦螢幕前貼著一張便利貼：『不加班就是不合群』。", () => {
+             makeButtons([
+                { text: "立刻開始工作", action: sceneFinalChoice },
+                { text: "嘗試逃跑", rebel: true, action: secretEscape } 
+            ]);
+        });
+    }
+
+    function secretEscape() {
+        // 叛逆按鈕如果真的被點到
+        unlockEnding(3);
+    }
+
+    function sceneFinalChoice() {
+        // 這裡決定是否成為完美的螺絲釘
+        speak("你工作了 12 個小時。老闆問：『小明，這裡有個 bug，你能留下來修嗎？』(現在是凌晨 2 點)", () => {
+            makeButtons([
+                { text: "好的老闆，這是我的榮幸", action: () => unlockEnding(2) },
+                { text: "翻桌 (Flip Table)", action: () => { updateStress(100); } } // 導致壓力爆表
+            ]);
+        });
+    }
+
+    // === 結局系統 ===
+    function unlockEnding(id) {
+        // 檢查是否已解鎖
+        if(!gameData.endings.includes(id)) {
+            gameData.endings.push(id);
+            localStorage.setItem('xiaoming_endings', JSON.stringify(gameData.endings));
+        }
+
+        const ending = endingsList.find(e => e.id === id);
+        
+        // 結局畫面
+        document.body.style.background = "#000";
+        els.gameStage.style.display = "none";
+        
+        const div = document.createElement('div');
+        div.style.textAlign = "center";
+        div.style.color = "gold";
+        div.style.zIndex = "2000";
+        div.innerHTML = `
+            <h1 style="font-size: 4rem">${ending.icon}</h1>
+            <h2>結局 ${id}/5: ${ending.title}</h2>
+            <p>${ending.desc}</p>
+            <button class="btn" onclick="location.reload()">重新輪迴</button>
+            <br><br>
+            <button style="background:none; border:none; color:#666; text-decoration:underline" onclick="openCollectionFromEnd()">查看結局庫</button>
+        `;
+        document.body.appendChild(div);
+    }
+
+    // === 收藏庫介面控制 ===
+    function openCollection() {
+        const grid = document.getElementById('ending-grid');
+        grid.innerHTML = "";
+        
+        endingsList.forEach(end => {
+            const isUnlocked = gameData.endings.includes(end.id);
+            const card = document.createElement('div');
+            card.className = `ending-card ${isUnlocked ? 'unlocked' : ''}`;
+            card.innerHTML = `
+                <div class="ending-icon">${isUnlocked ? end.icon : '🔒'}</div>
+                <div style="font-weight:bold">${isUnlocked ? end.title : '???'}</div>
+                <div style="font-size:0.8rem; margin-top:5px;">${isUnlocked ? end.desc : '繼續受苦來解鎖此結局'}</div>
+            `;
+            grid.appendChild(card);
+        });
+
+        document.getElementById('ending-modal').style.display = 'block';
+    }
+
+    function closeCollection() {
+        document.getElementById('ending-modal').style.display = 'none';
+    }
+    
+    function openCollectionFromEnd() {
+        openCollection();
+        // 修改關閉按鈕行為以重整頁面
+        document.querySelector('.close-btn').onclick = () => location.reload();
+    }
+
+    // 啟動
+    initGame();
+
+</script>
+</body>
+</html>
