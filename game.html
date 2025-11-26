@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小明的完美一天 V5.1: 節奏優化版</title>
+    <title>小明的完美一天 V8.0: 玩家主控版</title>
     <style>
         :root {
             --bg-color: #050505;
@@ -27,7 +27,6 @@
             align-items: center;
         }
 
-        /* === CRT 濾鏡 === */
         #crt-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
@@ -35,7 +34,16 @@
             pointer-events: none; z-index: 999;
         }
 
-        /* === 遊戲主舞台 === */
+        /* 時光轉場黑幕 */
+        #transition-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 8000;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+            opacity: 0; transition: opacity 1s;
+        }
+        .trans-year { font-size: 2rem; color: var(--highlight); margin-bottom: 10px; font-weight: bold; }
+        .trans-loc { font-size: 1.2rem; color: #888; }
+
         #game-stage {
             width: 100%; height: 100%; max-width: 1024px;
             position: relative; background: #111;
@@ -44,7 +52,6 @@
             box-shadow: 0 0 50px rgba(0,255,0,0.1);
         }
 
-        /* === HUD === */
         #hud {
             padding: 10px 20px; background: #222; border-bottom: 2px solid #444;
             display: flex; justify-content: space-between; align-items: center;
@@ -52,7 +59,6 @@
         }
         #collection-btn { background: none; border: 1px solid #666; color: #888; cursor: pointer; padding: 5px 10px; }
 
-        /* === 場景區 === */
         #scene-viewport {
             flex-grow: 1; position: relative;
             display: flex; justify-content: center; align-items: center;
@@ -67,7 +73,6 @@
             display: inline-block; margin-top: 20px; box-shadow: 5px 5px 0 #000;
         }
 
-        /* === 旁白與互動區 === */
         #control-panel {
             min-height: 35%; background: #1a1a1a; border-top: 2px solid #444;
             padding: 20px; display: flex; flex-direction: column; justify-content: space-between; z-index: 20;
@@ -84,8 +89,15 @@
         .btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
         .btn:hover { background: #fff; }
         
-        /* === 紅包小遊戲 UI === */
-        #red-envelope-game {
+        /* 特別的繼續按鈕樣式 */
+        .continue-btn {
+            background-color: #0f0 !important;
+            border-color: #0a0 !important;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%{box-shadow: 0 0 0 0 rgba(0,255,0,0.7);} 70%{box-shadow: 0 0 0 10px rgba(0,255,0,0);} 100%{box-shadow: 0 0 0 0 rgba(0,255,0,0);} }
+
+        .mini-game-ui {
             display: none; position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%); width: 90%; max-width: 500px;
             background: #000;
@@ -93,56 +105,55 @@
             text-align: center; z-index: 50; box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
         }
 
-        /* === 結果結算遮罩 === */
+        .game-bar { width: 100%; height: 40px; background: #333; margin: 20px 0; position: relative; border-radius: 20px; overflow: hidden; border: 1px solid #555; }
+
+        #exam-cursor { width: 6px; height: 100%; background: #fff; position: absolute; left: 0; top:0; z-index: 10; transition: background-color 0.1s; }
+        #exam-target { width: 25px; height: 100%; background: #0f0; position: absolute; right: 10%; top:0; z-index: 5; box-shadow: 0 0 10px #0f0; }
+        .score-display { font-size: 3rem; font-weight: bold; margin-bottom: 10px; }
+
+        #bug-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .bug-btn {
+            position: absolute; width: 80px; height: 40px; background: #f00; color: white;
+            border: 2px solid #fff; cursor: pointer; font-size: 12px;
+            animation: popIn 0.2s; pointer-events: auto;
+            z-index: 40; display: flex; justify-content: center; align-items: center;
+        }
+
         #result-overlay {
             position: absolute; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0,0,0,0.95);
             display: flex; justify-content: center; align-items: center;
             font-size: 3rem; font-weight: bold; z-index: 60;
-            display: none; /* 預設隱藏 */
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: none; flex-direction: column; gap: 20px;
         }
-        @keyframes popIn { 0%{transform: scale(0.5); opacity:0;} 100%{transform: scale(1); opacity:1;} }
+        .result-subtitle { font-size: 1rem; color: #ccc; font-weight: normal;}
 
-        /* === 全螢幕教學層 === */
         #global-tutorial {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: #000; z-index: 5000;
             display: none;
             flex-direction: column; justify-content: center; align-items: center;
-            padding: 40px; color: #fff;
+            padding: 20px; color: #fff;
         }
-        
-        .tut-container { max-width: 600px; width: 100%; border: 1px solid #333; padding: 20px; border-radius: 10px; background: #111; }
+        .tut-container { 
+            max-width: 500px; width: 100%; 
+            border: 2px solid #444; padding: 25px; 
+            border-radius: 10px; background: #111; 
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
         .tutorial-step { 
             margin-bottom: 20px; text-align: left; font-size: 1.1rem; 
             border-bottom: 1px solid #333; padding-bottom: 15px; width: 100%;
-            line-height: 1.6; display: flex; align-items: center;
+            line-height: 1.6; display: flex; align-items: flex-start;
         }
-        .tut-icon { font-size: 2rem; margin-right: 20px; min-width: 50px; text-align: center;}
+        .tut-icon { font-size: 2rem; margin-right: 15px; min-width: 40px; text-align: center; line-height: 1;}
 
-        #tug-bar { 
-            width: 100%; height: 40px; background: #333; margin: 20px 0; 
-            position: relative; border-radius: 20px; overflow: hidden; border: 1px solid #555;
-        }
-        #tug-zone { 
-            position: absolute; left: 30%; width: 40%; height: 100%; 
-            background: rgba(0,255,0,0.2); z-index: 1; 
-            border-left: 2px dashed #0f0; border-right: 2px dashed #0f0;
-            display: flex; align-items: center; justify-content: center;
-            color: #0f0; font-size: 0.8rem; font-weight: bold;
-        }
+        #tug-zone { position: absolute; left: 30%; width: 40%; height: 100%; background: rgba(0,255,0,0.2); z-index: 1; border-left: 2px dashed #0f0; border-right: 2px dashed #0f0; display: flex; align-items: center; justify-content: center; color: #0f0; font-size: 0.8rem; font-weight: bold; }
         #tug-zone::after { content: "安全區"; }
-        #tug-indicator { 
-            width: 20px; height: 100%; background: gold; 
-            position: absolute; left: 50%; top:0;
-            transition: left 0.05s linear; z-index: 2; 
-            box-shadow: 0 0 10px gold; border-radius: 4px; border: 1px solid #fff;
-        }
+        #tug-indicator { width: 20px; height: 100%; background: gold; position: absolute; left: 50%; top:0; transition: left 0.05s linear; z-index: 2; box-shadow: 0 0 10px gold; border-radius: 4px; border: 1px solid #fff; }
         #game-progress-container { width: 100%; height: 8px; background: #333; margin-bottom: 10px; border-radius: 4px; overflow: hidden;}
         #game-progress { width: 0%; height: 100%; background: #0f0; transition: width 0.2s; }
 
-        /* === 結局收藏庫 Modal === */
         #ending-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 6000; padding: 40px; overflow-y: auto;
@@ -154,6 +165,7 @@
         .close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 2rem; cursor: pointer; }
 
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes popIn { 0%{transform: scale(0.5); opacity:0;} 100%{transform: scale(1); opacity:1;} }
         .shake { animation: shake 0.5s infinite; }
         @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -2px); } 100% { transform: translate(1px, -1px); } }
 
@@ -163,33 +175,15 @@
 
     <div id="crt-overlay"></div>
 
+    <div id="transition-overlay">
+        <div class="trans-year" id="trans-year"></div>
+        <div class="trans-loc" id="trans-loc"></div>
+    </div>
+
     <div id="global-tutorial">
-        <h2 style="color: gold; margin-bottom: 30px;">🧧 紅包戰術指南</h2>
         <div class="tut-container">
-            <div class="tutorial-step">
-                <div class="tut-icon">🤖</div>
-                <div>
-                    <strong>自動移動：</strong><br>
-                    紅包會自動往右跑 (親戚硬塞)。<br>
-                    <span style="color:#ff5555; font-size:0.9em;">碰到右邊邊界 = 貪婪 (失敗)</span>
-                </div>
-            </div>
-            <div class="tutorial-step">
-                <div class="tut-icon">👇</div>
-                <div>
-                    <strong>你的操作：</strong><br>
-                    點擊按鈕，把紅包往左推 (假裝拒絕)。<br>
-                    <span style="color:#ff5555; font-size:0.9em;">碰到左邊邊界 = 不給面子 (失敗)</span>
-                </div>
-            </div>
-            <div class="tutorial-step">
-                <div class="tut-icon">✅</div>
-                <div>
-                    <strong>勝利條件：</strong><br>
-                    讓金條停留在 <span style="color:#0f0; border: 1px dashed #0f0; padding: 2px 5px;">綠色安全區</span> 滿 3 秒。
-                </div>
-            </div>
-            <button class="btn" onclick="startActualGame()" style="width:100%; background: #0f0; border-color: #0a0; margin-top: 10px;">我準備好了！ (START)</button>
+            <h2 id="tut-title" style="color: gold; margin-bottom: 20px; text-align:center; border-bottom:1px solid gold; padding-bottom:10px;">戰術指南</h2>
+            <div id="tut-content"></div>
         </div>
     </div>
 
@@ -200,22 +194,37 @@
         </div>
 
         <div id="scene-viewport">
+            <div id="bug-container"></div>
             <div id="main-scene" class="scene-content">
                 <div class="emoji-actor" id="visual-emoji">🤖</div>
                 <div class="location-tag" id="visual-loc">SYSTEM BOOT</div>
             </div>
             
-            <div id="red-envelope-game">
-                <div id="result-overlay"></div> <h3 style="color: gold; margin: 0 0 10px 0;">🧧 紅包推拉戰</h3>
+            <div id="result-overlay">
+                <div id="result-text"></div>
+                <div id="result-sub" class="result-subtitle"></div>
+            </div>
+
+            <div id="red-envelope-game" class="mini-game-ui">
+                <h3 style="color: gold; margin: 0 0 10px 0;">🧧 紅包推拉戰</h3>
                 <div style="font-size: 0.8rem; color: #ccc; margin-bottom: 2px;">禮貌值累積進度:</div>
                 <div id="game-progress-container"><div id="game-progress"></div></div>
-                
-                <div id="tug-bar">
+                <div class="game-bar">
                     <div id="tug-zone"></div>
                     <div id="tug-indicator"></div>
                 </div>
-                
                 <button class="btn" id="tug-btn" style="width:100%; background:gold; border-color:orange; color:#000; font-size: 1.1rem; padding: 10px;">👇 點這裡往左推 (拒絕)</button>
+            </div>
+
+            <div id="exam-game" class="mini-game-ui">
+                <h3 style="color: #fff; margin: 0 0 10px 0;">📝 期末考</h3>
+                <div class="score-display" id="exam-score">0</div>
+                <div style="font-size: 0.8rem; color: #ccc; margin-bottom: 10px;">提示：當白色游標<span style="color:#0f0">變綠</span>時按下停止</div>
+                <div class="game-bar" style="background: #000; border-color: #fff;">
+                    <div id="exam-target"></div>
+                    <div id="exam-cursor"></div>
+                </div>
+                <button class="btn" id="exam-btn" style="width:100%; background:#fff; border-color:#ccc; color:#000; font-size: 1.1rem; padding: 10px;">🛑 停止!</button>
             </div>
         </div>
 
@@ -235,10 +244,12 @@
     const gameData = { stress: 0, endings: JSON.parse(localStorage.getItem('xiaoming_endings')) || [] };
     const endingsList = [
         { id: 1, icon: "💀", title: "過勞死", desc: "壓力爆表，系統崩潰。" },
-        { id: 2, icon: "⚙️", title: "完美的螺絲釘", desc: "順從所有指示，失去了自我。" },
+        { id: 2, icon: "⚙️", title: "完美的螺絲釘", desc: "工作到失去自我，成為公司的一部分。" },
         { id: 3, icon: "🏃", title: "逃離迴圈", desc: "你發現了系統的漏洞並逃走了。" },
-        { id: 4, icon: "🤬", title: "社會性死亡", desc: "紅包沒拿捏好，親戚都討厭你。" },
-        { id: 5, icon: "🤡", title: "小丑", desc: "你試圖反抗，但只是在搞笑。" }
+        { id: 4, icon: "🤬", title: "社會性死亡", desc: "在家庭聚餐中失去了面子。" },
+        { id: 5, icon: "🤡", title: "小丑", desc: "你試圖反抗，但只是在搞笑。" },
+        { id: 6, icon: "📉", title: "家族恥辱", desc: "考試沒有拿滿分，被補習班開除。" },
+        { id: 7, icon: "☕", title: "摸魚哲學", desc: "在茶水間找到了片刻的寧靜 (隱藏結局)。" }
     ];
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -258,10 +269,12 @@
         text: document.getElementById('narrator-text'), btns: document.getElementById('choices-container'),
         stress: document.getElementById('stress-display'), gameStage: document.getElementById('game-stage'),
         redGame: document.getElementById('red-envelope-game'), tugIndicator: document.getElementById('tug-indicator'),
-        gameProgress: document.getElementById('game-progress'), 
-        tutorial: document.getElementById('global-tutorial'),
-        tugBtn: document.getElementById('tug-btn'),
-        resultOverlay: document.getElementById('result-overlay') // 新增：結果遮罩
+        gameProgress: document.getElementById('game-progress'), tutorial: document.getElementById('global-tutorial'),
+        tugBtn: document.getElementById('tug-btn'), resultOverlay: document.getElementById('result-overlay'),
+        examGame: document.getElementById('exam-game'), examCursor: document.getElementById('exam-cursor'),
+        examBtn: document.getElementById('exam-btn'), examScore: document.getElementById('exam-score'),
+        bugContainer: document.getElementById('bug-container'), examTarget: document.getElementById('exam-target'),
+        transOverlay: document.getElementById('transition-overlay'), transYear: document.getElementById('trans-year'), transLoc: document.getElementById('trans-loc')
     };
 
     function updateStress(val) {
@@ -276,6 +289,21 @@
     function setScene(emoji, loc) {
         els.emoji.innerText = emoji; els.loc.innerText = loc;
         playTone(600, 'sine', 0.1);
+        els.bugContainer.innerHTML = '';
+    }
+
+    function playTransition(year, loc, callback) {
+        els.transOverlay.style.display = 'flex';
+        els.transYear.innerText = year;
+        els.transLoc.innerText = loc;
+        requestAnimationFrame(() => els.transOverlay.style.opacity = '1');
+        setTimeout(() => {
+            els.transOverlay.style.opacity = '0';
+            setTimeout(() => {
+                els.transOverlay.style.display = 'none';
+                callback();
+            }, 1000);
+        }, 2000);
     }
 
     let typeInterval;
@@ -284,7 +312,7 @@
         let i = 0; clearInterval(typeInterval);
         typeInterval = setInterval(() => {
             els.text.innerHTML += text.charAt(i);
-            if(i % 2 === 0) playTone(800 + Math.random()*200, 'square', 0.05);
+            if(i % 3 === 0) playTone(800 + Math.random()*200, 'square', 0.05);
             i++;
             if(i >= text.length) { clearInterval(typeInterval); if(callback) callback(); }
         }, 30);
@@ -294,10 +322,12 @@
         els.btns.innerHTML = "";
         options.forEach(opt => {
             const btn = document.createElement('button');
-            btn.className = 'btn'; btn.innerText = opt.text; btn.onclick = opt.action;
+            btn.className = 'btn'; btn.innerText = opt.text; 
+            btn.onclick = opt.action;
+            if (opt.special === 'continue') btn.classList.add('continue-btn'); // 加特效
             if(opt.rebel) {
                 btn.onmouseover = () => { if(window.innerWidth > 768) { const x = (Math.random()-0.5)*300; const y = (Math.random()-0.5)*100; btn.style.transform = `translate(${x}px, ${y}px)`; }};
-                if(window.innerWidth <= 768) btn.onclick = () => { if(Math.random()>0.5) opt.action(); else speak("你按到了嗎？好像沒有喔。", () => makeButtons(options)); }
+                if(window.innerWidth <= 768) btn.onclick = () => { if(Math.random()>0.5) opt.action(); else speak("你以為你能反抗嗎？", () => makeButtons(options)); }
             }
             els.btns.appendChild(btn);
         });
@@ -306,137 +336,245 @@
     function initGame() {
         gameData.stress = 0; updateStress(0);
         setScene("🛌", "臥室 - 07:00");
-        speak("又是新的一天。小明，你知道鄰居小孩已經背完圓周率後 100 位了嗎？", () => {
+        speak("又是新的一天。小明，你的表弟已經考上醫學院了。你準備好起床了嗎？", () => {
             makeButtons([
                 { text: "驚恐起床", action: sceneBathroom },
-                { text: "五分鐘...", action: () => { updateStress(20); speak("你選擇了墮落。", () => makeButtons([{text:"起床", action:sceneBathroom}])); } }
+                { text: "五分鐘...", action: () => { updateStress(20); speak("你浪費了五分鐘，離成功又遠了一步。", () => makeButtons([{text:"起床", action:sceneBathroom}])); } }
             ]);
         });
     }
 
     function sceneBathroom() {
         setScene("🪥", "浴室");
-        speak("照照鏡子。現在，做出選擇。", () => {
+        speak("照照鏡子。你的眼神還不夠銳利。你必須隨時準備好面對這個世界。", () => {
             makeButtons([
-                { text: "洗臉 (清醒)", action: sceneRelatives },
-                { text: "發呆", action: () => { updateStress(10); unlockEnding(5); } } 
+                { text: "冷水洗臉", action: () => {
+                    playTransition("10 歲", "老家 - 過年", sceneRelatives);
+                }},
+                { text: "對鏡子做鬼臉", action: () => { updateStress(10); unlockEnding(5); } } 
             ]);
         });
     }
 
     function sceneRelatives() {
         setScene("🧧", "過年聚餐");
-        speak("大姑姑拿出了紅包。這是禮貌的戰場。你準備好展現你的『推拉藝術』了嗎？", () => {
-            makeButtons([{ text: "查看戰術指南 (開始)", action: showTutorial }]);
+        speak("大姑姑拿出了紅包。這是禮貌的戰場。記住：不能太貪心，也不能太失禮。", () => {
+            makeButtons([{ text: "查看戰術指南 (開始)", action: showRedEnvelopeTutorial }]);
         });
     }
 
-    function showTutorial() {
-        els.btns.innerHTML = ""; 
-        els.tutorial.style.display = 'flex'; 
+    function showRedEnvelopeTutorial() {
+        document.getElementById('tut-title').innerText = "🧧 紅包戰術";
+        document.getElementById('tut-content').innerHTML = `
+            <div class="tutorial-step"><div class="tut-icon">🤖</div><div><strong>自動移動：</strong>紅包往右跑 (親戚硬塞)。<br><span style="color:#f55; font-size:0.9em">碰到右邊 = 貪婪 (失敗)</span></div></div>
+            <div class="tutorial-step"><div class="tut-icon">👇</div><div><strong>你的操作：</strong>點按鈕往左推 (拒絕)。<br><span style="color:#f55; font-size:0.9em">碰到左邊 = 不給面子 (失敗)</span></div></div>
+            <div class="tutorial-step"><div class="tut-icon">✅</div><div><strong>勝利條件：</strong>停在綠色區域滿 3 秒。</div></div>
+            <button class="btn" onclick="startRedEnvelopeGame()" style="width:100%; background:#0f0; margin-top:10px">開始</button>
+        `;
+        els.tutorial.style.display = 'flex';
     }
 
-    function startActualGame() {
+    function startRedEnvelopeGame() {
         els.tutorial.style.display = 'none'; 
         els.redGame.style.display = 'block'; 
-        // 隱藏結果遮罩 (重置)
         els.resultOverlay.style.display = 'none';
         els.gameProgress.style.width = '0%';
         
-        let position = 80; 
-        let timeInZone = 0;
-        const targetTime = 3.0; 
-        let isRunning = true;
-        let gameLoop;
+        let position = 80; let timeInZone = 0; const targetTime = 3.0; let isRunning = true; let gameLoop;
+        const newBtn = els.tugBtn.cloneNode(true); els.tugBtn.parentNode.replaceChild(newBtn, els.tugBtn); els.tugBtn = newBtn;
 
-        const newBtn = els.tugBtn.cloneNode(true);
-        els.tugBtn.parentNode.replaceChild(newBtn, els.tugBtn);
-        els.tugBtn = newBtn;
-
-        els.tugBtn.onclick = () => { 
-            position -= 7; 
-            if(position < 0) position = 0;
-            playTone(200, 'square', 0.1); 
-        }; 
+        els.tugBtn.onclick = () => { position -= 7; if(position < 0) position = 0; playTone(200, 'square', 0.1); }; 
 
         gameLoop = setInterval(() => {
             if(!isRunning) return;
-
             position += 0.4; 
-            
             els.tugIndicator.style.left = position + "%";
+            if(position >= 30 && position <= 70) { timeInZone += 0.05; els.tugIndicator.style.backgroundColor = "#0f0"; } 
+            else { els.tugIndicator.style.backgroundColor = "gold"; }
+            
+            els.gameProgress.style.width = Math.min(100, (timeInZone / targetTime) * 100) + "%";
 
-            if(position >= 30 && position <= 70) {
-                timeInZone += 0.05;
-                els.tugIndicator.style.backgroundColor = "#0f0";
-            } else {
-                els.tugIndicator.style.backgroundColor = "gold";
-            }
-
-            let progress = Math.min(100, (timeInZone / targetTime) * 100);
-            els.gameProgress.style.width = progress + "%";
-
-            if(position <= 0) endGame(false, "太大力了！你把紅包甩在地上！");
-            else if (position >= 100) endGame(false, "太快收下了！貪婪！");
-
-            if(timeInZone >= targetTime) endGame(true, "完美的推拉藝術！面子保住了。");
-
+            if(position <= 0) endGame(false, "太用力了！你把姑姑的手打折了！");
+            else if (position >= 100) endGame(false, "太快收下！親戚在背後說你貪財。");
+            if(timeInZone >= targetTime) endGame(true, "完美的推拉！你保住了面子。");
         }, 50);
 
         function endGame(win, msg) {
-            isRunning = false;
-            clearInterval(gameLoop);
-            
-            // === 節奏優化：顯示結果並暫停 ===
-            els.resultOverlay.style.display = "flex";
-            if(win) {
-                els.resultOverlay.innerHTML = "🎉 完美！";
-                els.resultOverlay.style.color = "#0f0";
-                playTone(1000, 'sine', 0.5); // 勝利音效
-            } else {
-                els.resultOverlay.innerHTML = "❌ 失敗！";
-                els.resultOverlay.style.color = "#f00";
-                playTone(150, 'sawtooth', 0.5); // 失敗音效
-            }
-
-            // 延遲 2 秒再跳轉
-            setTimeout(() => {
+            isRunning = false; clearInterval(gameLoop);
+            showResult(win, win ? "完美！" : "失敗！", () => {
                 els.redGame.style.display = 'none';
-                if(win) speak(msg, sceneOffice);
-                else { updateStress(50); speak(msg, () => unlockEnding(4)); }
-            }, 2000);
+                if(win) {
+                    // === 修改點：不再自動跳轉，而是顯示按鈕 ===
+                    speak("完美的禮貌。親戚們很滿意。你拿到了一筆錢，但這筆錢會立刻被媽媽存起來。", () => {
+                        makeButtons([{
+                            text: ">>> 16歲：補習班", 
+                            special: 'continue',
+                            action: () => playTransition("16 歲", "補習班 - 模擬考", sceneCramSchool)
+                        }]);
+                    });
+                } else { 
+                    updateStress(50); speak(msg, () => unlockEnding(4)); 
+                }
+            });
         }
+    }
+
+    function sceneCramSchool() {
+        setScene("📚", "補習班");
+        speak("雖然吃完了飯，但你的作業還沒寫完。在這個世界上，只有滿分才是及格。準備好考試了嗎？", () => {
+             makeButtons([{ text: "面對試卷 (開始)", action: showExamTutorial }]);
+        });
+    }
+
+    function showExamTutorial() {
+        document.getElementById('tut-title').innerText = "📝 完美主義考試";
+        document.getElementById('tut-content').innerHTML = `
+            <div class="tutorial-step"><div class="tut-icon">⚡</div><div><strong>光標移動：</strong>白色光標會快速來回移動。</div></div>
+            <div class="tutorial-step"><div class="tut-icon">🎯</div><div><strong>你的目標：</strong>按下停止鍵，讓光標<br>停在<span style="color:#0f0">綠色滿分線</span>上。<br><span style="color:#0f0; font-size:0.8em;">(提示：當光標變綠時立刻按！)</span></div></div>
+            <div class="tutorial-step"><div class="tut-icon">⚠️</div><div><strong>警告：</strong>只有 100 分是合格。<br>99 分也是失敗。</div></div>
+            <button class="btn" onclick="startExamGame()" style="width:100%; background:#fff; color:#000; margin-top:10px">開始考試</button>
+        `;
+        els.tutorial.style.display = 'flex';
+    }
+
+    function startExamGame() {
+        els.tutorial.style.display = 'none';
+        els.examGame.style.display = 'block';
+        els.resultOverlay.style.display = 'none';
+        
+        let cursorX = 0; let direction = 1; let speed = 1.5; 
+        let isRunning = true; let gameLoop;
+        
+        let targetX = 70 + Math.random() * 20; 
+        els.examTarget.style.left = targetX + "%";
+        let tolerance = 4.0; 
+        els.examTarget.style.width = (tolerance * 2) + "%"; 
+
+        const newBtn = els.examBtn.cloneNode(true); els.examBtn.parentNode.replaceChild(newBtn, els.examBtn); els.examBtn = newBtn;
+
+        gameLoop = setInterval(() => {
+            if(!isRunning) return;
+            cursorX += speed * direction;
+            if(cursorX > 98 || cursorX < 0) direction *= -1;
+            els.examCursor.style.left = cursorX + "%";
+            
+            let isInZone = (cursorX >= targetX && cursorX <= targetX + tolerance*2) || (Math.abs(cursorX - targetX) < tolerance);
+            
+            if(isInZone) {
+                els.examCursor.style.backgroundColor = "#0f0"; 
+                els.examCursor.style.boxShadow = "0 0 10px #0f0";
+            } else {
+                els.examCursor.style.backgroundColor = "#fff";
+                els.examCursor.style.boxShadow = "none";
+            }
+            els.examScore.innerText = isInZone ? "100" : Math.floor(Math.random()*90);
+        }, 16);
+
+        els.examBtn.onclick = () => {
+            isRunning = false; clearInterval(gameLoop);
+            
+            let isInZone = els.examCursor.style.backgroundColor === "rgb(0, 255, 0)";
+            let finalScore = isInZone ? 100 : Math.floor(Math.random() * 60 + 30);
+            
+            els.examScore.innerText = finalScore;
+
+            showResult(isInZone, isInZone ? "滿分！" : finalScore + " 分...", () => {
+                els.examGame.style.display = 'none';
+                if(isInZone) {
+                    // === 修改點：不再自動跳轉，而是顯示按鈕 ===
+                    speak("做得好。這是你應得的。不要驕傲，這只是學生的本分。", () => {
+                         makeButtons([{
+                            text: ">>> 24歲：科技園區", 
+                            special: 'continue',
+                            action: () => playTransition("24 歲", "科技園區 - 辦公室", sceneOffice)
+                        }]);
+                    });
+                }
+                else { 
+                    updateStress(40); speak(`只有 ${finalScore} 分？隔壁小華考了 100 分。你讓家族蒙羞。`, () => unlockEnding(6)); 
+                }
+            });
+        };
     }
 
     function sceneOffice() {
-        setScene("💻", "辦公室");
-        speak("雖然是過年，但老闆說『專案不等人』。不加班就是不合群。", () => {
+        setScene("💻", "無限加班");
+        speak("終於畢業了。歡迎來到職場。旁白：『小明，請立刻前往會議室，我們要檢討你的 KPI。』", () => {
              makeButtons([
-                { text: "工作", action: sceneFinalChoice },
-                { text: "逃跑", rebel: true, action: () => unlockEnding(3) } 
+                { text: "前往會議室 (服從)", action: sceneBugHydra },
+                { text: "去茶水間 (休息)", action: scenePantry }
             ]);
         });
     }
 
-    function sceneFinalChoice() {
-        speak("凌晨 2 點。老闆問：『這裡有個 bug，你能留下來修嗎？』", () => {
-            makeButtons([
-                { text: "好的老闆", action: () => unlockEnding(2) },
-                { text: "翻桌", action: () => { updateStress(100); } } 
+    function scenePantry() {
+        speak("小明，你走錯路了。會議室在左邊。茶水間沒有你的未來。立刻回頭。", () => {
+             makeButtons([
+                { text: "好吧，去會議室", action: sceneBugHydra },
+                { text: "不，我就要喝茶", action: () => unlockEnding(7) } 
             ]);
         });
+    }
+
+    function sceneBugHydra() {
+        speak("會議結束。老闆說系統有很多 Bug。現在，修好它們。全部修好。", () => {
+             makeButtons([{ text: "開始 Debug (警告: 高壓)", action: startBugGame }]);
+        });
+    }
+
+    function startBugGame() {
+        els.btns.innerHTML = ""; 
+        let bugsFixed = 0; let activeBugs = 1;
+        spawnBug();
+
+        function spawnBug() {
+            const bug = document.createElement('div'); bug.className = 'bug-btn';
+            bug.innerText = "BUG"; bug.style.left = Math.random() * 80 + "%"; bug.style.top = Math.random() * 80 + "%";
+            bug.onmousedown = (e) => {
+                e.stopPropagation(); bugsFixed++;
+                playTone(400 + Math.random()*400, 'square', 0.05);
+                bug.remove(); activeBugs--;
+                if(bugsFixed < 15) { setTimeout(spawnBug, 50); setTimeout(spawnBug, 100); activeBugs += 2; } 
+                else { if(activeBugs === 0) endBugGame(); }
+                if(bugsFixed % 5 === 0) updateStress(5);
+            };
+            els.bugContainer.appendChild(bug);
+        }
+
+        const checkInterval = setInterval(() => {
+            if(els.bugContainer.childElementCount > 20) {
+                clearInterval(checkInterval); els.bugContainer.innerHTML = ''; updateStress(100);
+            }
+            if(bugsFixed >= 15 && els.bugContainer.childElementCount === 0) {
+                clearInterval(checkInterval); endBugGame();
+            }
+        }, 500);
+
+        function endBugGame() { 
+            speak("你做到了。所有 Bug 都修好了。老闆很滿意。他說：『明天繼續保持。』你的完美人生，就此定格。", () => {
+                 makeButtons([
+                    { text: "繼續工作 (接受命運)", action: () => unlockEnding(2) },
+                    { text: "翻桌 (我不幹了！)", action: () => unlockEnding(1) } 
+                ]);
+            });
+        }
+    }
+
+    function showResult(win, text, callback) {
+        els.resultOverlay.style.display = "flex";
+        document.getElementById('result-text').innerText = text;
+        document.getElementById('result-text').style.color = win ? "#0f0" : "#f00";
+        document.getElementById('result-sub').innerText = win ? "Social Credit +100" : "Failure detected";
+        playTone(win ? 1000 : 150, win ? 'sine' : 'sawtooth', 0.5);
+        setTimeout(() => { els.resultOverlay.style.display = "none"; callback(); }, 2000);
     }
 
     function unlockEnding(id) {
-        if(!gameData.endings.includes(id)) {
-            gameData.endings.push(id);
-            localStorage.setItem('xiaoming_endings', JSON.stringify(gameData.endings));
-        }
+        if(!gameData.endings.includes(id)) { gameData.endings.push(id); localStorage.setItem('xiaoming_endings', JSON.stringify(gameData.endings)); }
         const ending = endingsList.find(e => e.id === id);
         document.body.style.background = "#000"; els.gameStage.style.display = "none";
-        const div = document.createElement('div');
-        div.style.textAlign = "center"; div.style.color = "gold"; div.style.zIndex = "2000";
-        div.innerHTML = `<h1 style="font-size: 4rem">${ending.icon}</h1><h2>結局 ${id}/5: ${ending.title}</h2><p>${ending.desc}</p><button class="btn" onclick="location.reload()">重新輪迴</button><br><br><button style="background:none; border:none; color:#666; text-decoration:underline" onclick="openCollectionFromEnd()">查看結局庫</button>`;
+        const div = document.createElement('div'); div.style.textAlign = "center"; div.style.color = "gold"; div.style.zIndex = "2000";
+        div.innerHTML = `<h1 style="font-size: 4rem">${ending.icon}</h1><h2>結局 ${id}/7: ${ending.title}</h2><p>${ending.desc}</p><button class="btn" onclick="location.reload()">重新輪迴</button><br><br><button style="background:none; border:none; color:#666; text-decoration:underline" onclick="openCollectionFromEnd()">查看結局庫</button>`;
         document.body.appendChild(div);
     }
 
