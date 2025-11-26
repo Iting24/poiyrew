@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小明的完美一天 V3.1: 平衡修正版</title>
+    <title>小明的完美一天 V4.0: 新手教學版</title>
     <style>
         :root {
             --bg-color: #050505;
@@ -28,173 +28,115 @@
             align-items: center;
         }
 
-        /* === 視覺升級：CRT 螢幕濾鏡 === */
+        /* === CRT 濾鏡 === */
         #crt-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
             background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
-            z-index: 999;
+            pointer-events: none; z-index: 999;
         }
 
-        /* === 遊戲主容器 (RWD) === */
+        /* === 遊戲主容器 === */
         #game-stage {
-            width: 100%;
-            height: 100%;
-            max-width: 1024px;
-            position: relative;
-            background: #111;
-            display: flex;
-            flex-direction: column;
+            width: 100%; height: 100%; max-width: 1024px;
+            position: relative; background: #111;
+            display: flex; flex-direction: column;
             border: 2px solid #333;
             box-shadow: 0 0 50px rgba(0,255,0,0.1);
             perspective: 1000px;
         }
 
-        /* === 頂部資訊列 === */
+        /* === HUD === */
         #hud {
-            padding: 10px 20px;
-            background: #222;
-            border-bottom: 2px solid #444;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9rem;
-            z-index: 10;
+            padding: 10px 20px; background: #222; border-bottom: 2px solid #444;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.9rem; z-index: 10;
         }
+        #collection-btn { background: none; border: 1px solid #666; color: #888; cursor: pointer; padding: 5px 10px; }
 
-        #collection-btn {
-            background: none; border: 1px solid #666; color: #888; cursor: pointer; padding: 5px 10px;
-        }
-
-        /* === 3D 場景區 === */
+        /* === 場景區 === */
         #scene-viewport {
-            flex-grow: 1;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            transform-style: preserve-3d;
+            flex-grow: 1; position: relative;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; transform-style: preserve-3d;
         }
         
-        .scene-content {
-            text-align: center;
-            animation: float 6s ease-in-out infinite;
-        }
-        
-        .emoji-actor {
-            font-size: clamp(80px, 15vw, 150px);
-            display: block;
-            text-shadow: 0 10px 20px rgba(0,0,0,0.5);
-        }
-
+        .scene-content { text-align: center; animation: float 6s ease-in-out infinite; }
+        .emoji-actor { font-size: clamp(80px, 15vw, 150px); display: block; text-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .location-tag {
-            background: var(--highlight);
-            color: #000;
-            padding: 5px 15px;
-            font-weight: bold;
-            font-size: 1.2rem;
-            transform: rotate(-2deg);
-            display: inline-block;
-            margin-top: 20px;
-            box-shadow: 5px 5px 0 #000;
+            background: var(--highlight); color: #000; padding: 5px 15px;
+            font-weight: bold; font-size: 1.2rem; transform: rotate(-2deg);
+            display: inline-block; margin-top: 20px; box-shadow: 5px 5px 0 #000;
         }
 
         /* === 旁白與互動區 === */
         #control-panel {
-            min-height: 35%;
-            background: #1a1a1a;
-            border-top: 2px solid #444;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            z-index: 20;
+            min-height: 35%; background: #1a1a1a; border-top: 2px solid #444;
+            padding: 20px; display: flex; flex-direction: column; justify-content: space-between; z-index: 20;
         }
-
-        #narrator-text {
-            color: var(--highlight);
-            font-size: clamp(1rem, 4vw, 1.2rem);
-            line-height: 1.5;
-            margin-bottom: 20px;
-            min-height: 3em;
-        }
-
-        #choices-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-            width: 100%;
-        }
+        #narrator-text { color: var(--highlight); font-size: clamp(1rem, 4vw, 1.2rem); line-height: 1.5; margin-bottom: 20px; min-height: 3em; }
+        #choices-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; width: 100%; }
 
         .btn {
-            background: #ddd;
-            color: #111;
-            border: 4px solid #555;
-            padding: 15px 30px;
-            font-size: 1rem;
-            font-weight: bold;
-            font-family: inherit;
-            cursor: pointer;
-            box-shadow: 4px 4px 0 #000;
-            transition: transform 0.1s, background 0.2s;
-            flex: 1 1 40%;
-            max-width: 400px;
+            background: #ddd; color: #111; border: 4px solid #555; padding: 15px 30px;
+            font-size: 1rem; font-weight: bold; font-family: inherit; cursor: pointer;
+            box-shadow: 4px 4px 0 #000; transition: transform 0.1s, background 0.2s;
+            flex: 1 1 40%; max-width: 400px;
         }
         .btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
         .btn:hover { background: #fff; }
         
-        /* === 紅包小遊戲專用 UI === */
+        /* === 紅包小遊戲 UI (包含教學遮罩) === */
         #red-envelope-game {
-            display: none;
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 500px;
-            background: rgba(0,0,0,0.95);
-            border: 2px solid gold;
-            padding: 20px;
-            text-align: center;
-            z-index: 50;
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
+            display: none; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); width: 90%; max-width: 500px;
+            background: rgba(0,0,0,0.95); border: 2px solid gold; padding: 20px;
+            text-align: center; z-index: 50; box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
         }
+
+        /* 教學覆蓋層 */
+        #tutorial-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 60; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+            color: #fff; padding: 20px;
+        }
+        .tutorial-step { margin-bottom: 15px; text-align: left; font-size: 0.9rem; border-bottom: 1px solid #444; padding-bottom: 10px;}
+        .tut-icon { font-size: 1.5rem; margin-right: 10px; vertical-align: middle; }
+
+        /* 遊戲條 */
         #tug-bar { 
-            width: 100%; height: 30px; background: #333; margin: 20px 0; 
-            position: relative; border-radius: 15px; overflow: hidden; border: 1px solid #555;
+            width: 100%; height: 40px; background: #333; margin: 20px 0; 
+            position: relative; border-radius: 20px; overflow: hidden; border: 1px solid #555;
         }
-        /* 安全區變寬 */
-        #tug-zone { position: absolute; left: 30%; width: 40%; height: 100%; background: rgba(0,255,0,0.2); z-index: 1; border-left: 1px dashed #0f0; border-right: 1px dashed #0f0;}
+        /* 安全區 */
+        #tug-zone { 
+            position: absolute; left: 30%; width: 40%; height: 100%; 
+            background: rgba(0,255,0,0.3); z-index: 1; 
+            border-left: 2px dashed #0f0; border-right: 2px dashed #0f0;
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(0,255,0,0.7); font-size: 0.8rem; font-weight: bold;
+        }
+        #tug-zone::after { content: "安全區"; }
+
+        /* 金條 */
         #tug-indicator { 
-            width: 15px; height: 100%; background: gold; 
+            width: 20px; height: 100%; background: gold; 
             position: absolute; left: 50%; top:0;
             transition: left 0.05s linear; z-index: 2; 
-            box-shadow: 0 0 10px gold; border-radius: 2px;
+            box-shadow: 0 0 10px gold; border-radius: 4px; border: 1px solid #fff;
         }
-        #game-progress { font-size: 0.8rem; color: #0f0; margin-bottom: 5px; }
+        
+        #game-progress-container { width: 100%; height: 5px; background: #333; margin-bottom: 10px; }
+        #game-progress { width: 0%; height: 100%; background: #0f0; transition: width 0.2s; }
 
         /* === 結局收藏庫 Modal === */
         #ending-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
-            z-index: 1000;
-            padding: 40px;
-            overflow-y: auto;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 1000; padding: 40px; overflow-y: auto;
         }
-        .ending-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-        .ending-card {
-            border: 1px solid #444; padding: 15px; text-align: center; opacity: 0.5; filter: grayscale(100%);
-        }
+        .ending-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; margin-top: 30px; }
+        .ending-card { border: 1px solid #444; padding: 15px; text-align: center; opacity: 0.5; filter: grayscale(100%); }
         .ending-card.unlocked { opacity: 1; filter: grayscale(0%); border-color: gold; background: #111; }
         .ending-icon { font-size: 2rem; margin-bottom: 10px; }
         .close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 2rem; cursor: pointer; }
@@ -222,14 +164,39 @@
             </div>
             
             <div id="red-envelope-game">
-                <h3 style="color: gold;">🧧 紅包推拉戰</h3>
-                <p style="font-size: 0.9rem; color:#ccc;">將金條保持在<span style="color:#0f0">綠色區域</span>內！</p>
-                <div id="game-progress">禮貌值累積: 0%</div>
-                <div id="tug-bar">
-                    <div id="tug-zone"></div>
-                    <div id="tug-indicator"></div>
+                <div id="tutorial-overlay">
+                    <h3 style="color: gold; margin-top: 0;">🧧 紅包戰術指南</h3>
+                    
+                    <div class="tutorial-step">
+                        <span class="tut-icon">🤖</span>
+                        <strong>自動移動：</strong><br>如果你不做任何事，紅包會自動往右跑 (親戚硬塞)。<br><span style="color:red">碰到右邊邊界 = 貪婪 (失敗)</span>
+                    </div>
+                    
+                    <div class="tutorial-step">
+                        <span class="tut-icon">👇</span>
+                        <strong>你的操作：</strong><br>點擊按鈕，把紅包往左推 (假裝拒絕)。<br><span style="color:red">碰到左邊邊界 = 不給面子 (失敗)</span>
+                    </div>
+
+                    <div class="tutorial-step">
+                        <span class="tut-icon">✅</span>
+                        <strong>勝利條件：</strong><br>控制點擊節奏，讓金條停留在<span style="color:#0f0">中間綠色區域</span>，累積滿 3 秒。
+                    </div>
+
+                    <button class="btn" onclick="startActualGame()" style="width:100%; background: #0f0; border-color: #0a0;">我準備好了！</button>
                 </div>
-                <button class="btn" id="tug-btn" style="width:100%; background:gold; border-color:orange; color:#000;">👇 點擊推辭 (不要連點太快)</button>
+
+                <div id="game-ui">
+                    <h3 style="color: gold; margin: 0 0 10px 0;">🧧 紅包推拉戰</h3>
+                    <div id="game-progress-container"><div id="game-progress"></div></div>
+                    <div style="font-size: 0.8rem; color: #ccc; margin-bottom: 5px;">目標：保持在綠色區域</div>
+                    
+                    <div id="tug-bar">
+                        <div id="tug-zone"></div>
+                        <div id="tug-indicator"></div>
+                    </div>
+                    
+                    <button class="btn" id="tug-btn" style="width:100%; background:gold; border-color:orange; color:#000; font-size: 1.2rem;">👇 點這裡往左推</button>
+                </div>
             </div>
         </div>
 
@@ -242,18 +209,11 @@
     <div id="ending-modal">
         <div class="close-btn" onclick="closeCollection()">×</div>
         <h2 style="color: gold; text-align: center;">結局收藏庫</h2>
-        <p style="text-align: center; color: #888;">收集所有 5 個結局以證明你是一個完美的亞洲人。</p>
         <div class="ending-grid" id="ending-grid"></div>
     </div>
 
 <script>
-    // === 遊戲數據與狀態 ===
-    const gameData = {
-        stress: 0,
-        endings: JSON.parse(localStorage.getItem('xiaoming_endings')) || [],
-        isPlaying: false
-    };
-
+    const gameData = { stress: 0, endings: JSON.parse(localStorage.getItem('xiaoming_endings')) || [] };
     const endingsList = [
         { id: 1, icon: "💀", title: "過勞死", desc: "壓力爆表，系統崩潰。" },
         { id: 2, icon: "⚙️", title: "完美的螺絲釘", desc: "順從所有指示，失去了自我。" },
@@ -262,33 +222,25 @@
         { id: 5, icon: "🤡", title: "小丑", desc: "你試圖反抗，但只是在搞笑。" }
     ];
 
-    // === 音效引擎 ===
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playTone(freq, type, dur) {
         if(audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.value = freq;
+        osc.type = type; osc.frequency.value = freq;
         gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + dur);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + dur);
     }
 
-    // === UI 更新 ===
     const els = {
-        emoji: document.getElementById('visual-emoji'),
-        loc: document.getElementById('visual-loc'),
-        text: document.getElementById('narrator-text'),
-        btns: document.getElementById('choices-container'),
-        stress: document.getElementById('stress-display'),
-        gameStage: document.getElementById('game-stage'),
-        redGame: document.getElementById('red-envelope-game'),
-        tugIndicator: document.getElementById('tug-indicator'),
-        gameProgress: document.getElementById('game-progress')
+        emoji: document.getElementById('visual-emoji'), loc: document.getElementById('visual-loc'),
+        text: document.getElementById('narrator-text'), btns: document.getElementById('choices-container'),
+        stress: document.getElementById('stress-display'), gameStage: document.getElementById('game-stage'),
+        redGame: document.getElementById('red-envelope-game'), tugIndicator: document.getElementById('tug-indicator'),
+        gameProgress: document.getElementById('game-progress'), tutorial: document.getElementById('tutorial-overlay'),
+        gameUI: document.getElementById('game-ui')
     };
 
     function updateStress(val) {
@@ -296,38 +248,24 @@
         if(gameData.stress < 0) gameData.stress = 0;
         els.stress.innerText = gameData.stress + "%";
         els.stress.style.color = gameData.stress > 80 ? 'red' : '#ccc';
-        
-        if(val > 0) {
-            playTone(150, 'sawtooth', 0.3);
-            els.gameStage.classList.add('shake');
-            setTimeout(() => els.gameStage.classList.remove('shake'), 500);
-        }
-
-        if(gameData.stress >= 100) {
-            unlockEnding(1); // Ending 1: Stress Overload
-        }
+        if(val > 0) { playTone(150, 'sawtooth', 0.3); els.gameStage.classList.add('shake'); setTimeout(() => els.gameStage.classList.remove('shake'), 500); }
+        if(gameData.stress >= 100) unlockEnding(1);
     }
 
     function setScene(emoji, loc) {
-        els.emoji.innerText = emoji;
-        els.loc.innerText = loc;
+        els.emoji.innerText = emoji; els.loc.innerText = loc;
         playTone(600, 'sine', 0.1);
     }
 
     let typeInterval;
     function speak(text, callback) {
-        els.text.innerHTML = "";
-        els.btns.innerHTML = "";
-        let i = 0;
-        clearInterval(typeInterval);
+        els.text.innerHTML = ""; els.btns.innerHTML = "";
+        let i = 0; clearInterval(typeInterval);
         typeInterval = setInterval(() => {
             els.text.innerHTML += text.charAt(i);
             if(i % 2 === 0) playTone(800 + Math.random()*200, 'square', 0.05);
             i++;
-            if(i >= text.length) {
-                clearInterval(typeInterval);
-                if(callback) callback();
-            }
+            if(i >= text.length) { clearInterval(typeInterval); if(callback) callback(); }
         }, 30);
     }
 
@@ -335,77 +273,67 @@
         els.btns.innerHTML = "";
         options.forEach(opt => {
             const btn = document.createElement('button');
-            btn.className = 'btn';
-            btn.innerText = opt.text;
-            btn.onclick = opt.action;
-            
+            btn.className = 'btn'; btn.innerText = opt.text; btn.onclick = opt.action;
             if(opt.rebel) {
-                btn.onmouseover = () => {
-                    if(window.innerWidth > 768) { 
-                        const x = (Math.random() - 0.5) * 300;
-                        const y = (Math.random() - 0.5) * 100;
-                        btn.style.transform = `translate(${x}px, ${y}px)`;
-                    }
-                };
-                if(window.innerWidth <= 768) {
-                    btn.onclick = () => {
-                        if(Math.random() > 0.5) opt.action();
-                        else speak("你按到了嗎？好像沒有喔。", () => makeButtons(options));
-                    }
-                }
+                btn.onmouseover = () => { if(window.innerWidth > 768) { const x = (Math.random()-0.5)*300; const y = (Math.random()-0.5)*100; btn.style.transform = `translate(${x}px, ${y}px)`; }};
+                if(window.innerWidth <= 768) btn.onclick = () => { if(Math.random()>0.5) opt.action(); else speak("你按到了嗎？好像沒有喔。", () => makeButtons(options)); }
             }
             els.btns.appendChild(btn);
         });
     }
 
-    // === 遊戲流程 ===
+    // === Game Flow ===
 
     function initGame() {
-        gameData.stress = 0;
-        updateStress(0);
+        gameData.stress = 0; updateStress(0);
         setScene("🛌", "臥室 - 07:00");
-        speak("又是新的一天。小明，你知道鄰居小孩已經背完圓周率後 100 位了嗎？你還在睡？", () => {
+        speak("又是新的一天。小明，你知道鄰居小孩已經背完圓周率後 100 位了嗎？", () => {
             makeButtons([
                 { text: "驚恐起床", action: sceneBathroom },
-                { text: "五分鐘...再五分鐘", action: () => { updateStress(20); speak("你選擇了墮落。這五分鐘是你人生的污點。", () => makeButtons([{text:"起床", action:sceneBathroom}])); } }
+                { text: "五分鐘...", action: () => { updateStress(20); speak("你選擇了墮落。", () => makeButtons([{text:"起床", action:sceneBathroom}])); } }
             ]);
         });
     }
 
     function sceneBathroom() {
         setScene("🪥", "浴室");
-        speak("照照鏡子。你的黑眼圈不夠深，代表你昨天不夠努力。現在，做出選擇。", () => {
+        speak("照照鏡子。現在，做出選擇。", () => {
             makeButtons([
-                { text: "冷水洗臉 (清醒)", action: sceneRelatives },
-                { text: "看著鏡子發呆", action: () => { updateStress(10); unlockEnding(5); } } 
+                { text: "洗臉 (清醒)", action: sceneRelatives },
+                { text: "發呆", action: () => { updateStress(10); unlockEnding(5); } } 
             ]);
         });
     }
 
     function sceneRelatives() {
         setScene("🧧", "過年聚餐");
-        speak("這是一個特殊的日子。親戚們圍繞著你。大姑姑拿出了一個厚實的紅包。注意，這是戰場。", () => {
-            makeButtons([
-                { text: "開始紅包推拉戰", action: startRedEnvelopeGame }
-            ]);
+        speak("大姑姑拿出了紅包。這是禮貌的戰場。你準備好展現你的『推拉藝術』了嗎？", () => {
+            makeButtons([{ text: "查看戰術指南 (開始)", action: showTutorial }]);
         });
     }
 
-    // === 修正版：紅包推拉戰 V3.1 ===
-    function startRedEnvelopeGame() {
-        els.btns.innerHTML = "";
+    // === 新增：教學模式 ===
+    function showTutorial() {
+        els.btns.innerHTML = ""; // 隱藏底部按鈕
         els.redGame.style.display = 'block';
+        els.tutorial.style.display = 'flex'; // 顯示教學遮罩
+        els.gameUI.style.display = 'none';   // 暫時隱藏遊戲本體
+    }
+
+    // === 實際開始遊戲 ===
+    function startActualGame() {
+        els.tutorial.style.display = 'none';
+        els.gameUI.style.display = 'block';
         
-        let position = 80; // 0 = 左(推辭), 100 = 右(收下). 初始在 80
+        let position = 80; 
         let timeInZone = 0;
-        const targetTime = 3.0; // 只需要3秒
-        let gameLoop;
+        const targetTime = 3.0; 
         let isRunning = true;
+        let gameLoop;
 
         const btn = document.getElementById('tug-btn');
-        // 修正：增加點擊的推回力度，讓操作更靈敏
         btn.onclick = () => { 
-            position -= 6; // 原本是 8，稍微調小一點防止按太快飛出去，但配合變慢的自動速度，這樣剛好
+            position -= 7; // 推力
             if(position < 0) position = 0;
             playTone(200, 'square', 0.1); 
         }; 
@@ -413,12 +341,11 @@
         gameLoop = setInterval(() => {
             if(!isRunning) return;
 
-            // 修正：大幅降低親戚硬塞的速度 (原本是 1.5 -> 0.4)
-            position += 0.4; 
+            position += 0.4; // 親戚推力
             
             els.tugIndicator.style.left = position + "%";
 
-            // 修正：擴大判定區間 (30-70)
+            // 30-70 是安全區
             if(position >= 30 && position <= 70) {
                 timeInZone += 0.05;
                 els.tugIndicator.style.backgroundColor = "#0f0";
@@ -426,23 +353,13 @@
                 els.tugIndicator.style.backgroundColor = "gold";
             }
 
-            // 更新進度條文字
             let progress = Math.min(100, (timeInZone / targetTime) * 100);
-            els.gameProgress.innerText = `禮貌值累積: ${progress.toFixed(0)}%`;
             els.gameProgress.style.width = progress + "%";
-            els.gameProgress.style.backgroundColor = `rgba(0, 255, 0, 0.5)`;
 
-            // 失敗判定
-            if(position <= 0) {
-                endGame(false, "你推得太用力，把紅包甩在姑姑臉上。沒禮貌。");
-            } else if (position >= 100) {
-                endGame(false, "你收得太快了！你的貪婪嘴臉被看光了。");
-            }
+            if(position <= 0) endGame(false, "太大力了！你把紅包甩在地上！");
+            else if (position >= 100) endGame(false, "太快收下了！貪婪！");
 
-            // 勝利判定
-            if(timeInZone >= targetTime) {
-                endGame(true, "完美的推拉藝術！你成功收下紅包並保住了面子。");
-            }
+            if(timeInZone >= targetTime) endGame(true, "完美的推拉！面子保住了。");
 
         }, 50);
 
@@ -450,95 +367,57 @@
             isRunning = false;
             clearInterval(gameLoop);
             els.redGame.style.display = 'none';
-            if(win) {
-                speak(msg, sceneOffice);
-            } else {
-                updateStress(50);
-                speak(msg, () => unlockEnding(4));
-            }
+            if(win) speak(msg, sceneOffice);
+            else { updateStress(50); speak(msg, () => unlockEnding(4)); }
         }
     }
 
     function sceneOffice() {
         setScene("💻", "辦公室");
-        speak("雖然是過年，但老闆說『專案不等人』。電腦螢幕前貼著一張便利貼：『不加班就是不合群』。", () => {
+        speak("雖然是過年，但老闆說『專案不等人』。不加班就是不合群。", () => {
              makeButtons([
-                { text: "立刻開始工作", action: sceneFinalChoice },
-                { text: "嘗試逃跑", rebel: true, action: secretEscape } 
+                { text: "工作", action: sceneFinalChoice },
+                { text: "逃跑", rebel: true, action: () => unlockEnding(3) } 
             ]);
         });
-    }
-
-    function secretEscape() {
-        unlockEnding(3);
     }
 
     function sceneFinalChoice() {
-        speak("你工作了 12 個小時。老闆問：『小明，這裡有個 bug，你能留下來修嗎？』(現在是凌晨 2 點)", () => {
+        speak("凌晨 2 點。老闆問：『這裡有個 bug，你能留下來修嗎？』", () => {
             makeButtons([
-                { text: "好的老闆，這是我的榮幸", action: () => unlockEnding(2) },
-                { text: "翻桌 (Flip Table)", action: () => { updateStress(100); } } 
+                { text: "好的老闆", action: () => unlockEnding(2) },
+                { text: "翻桌", action: () => { updateStress(100); } } 
             ]);
         });
     }
 
-    // === 結局系統 ===
     function unlockEnding(id) {
         if(!gameData.endings.includes(id)) {
             gameData.endings.push(id);
             localStorage.setItem('xiaoming_endings', JSON.stringify(gameData.endings));
         }
-
         const ending = endingsList.find(e => e.id === id);
-        
-        document.body.style.background = "#000";
-        els.gameStage.style.display = "none";
-        
+        document.body.style.background = "#000"; els.gameStage.style.display = "none";
         const div = document.createElement('div');
-        div.style.textAlign = "center";
-        div.style.color = "gold";
-        div.style.zIndex = "2000";
-        div.innerHTML = `
-            <h1 style="font-size: 4rem">${ending.icon}</h1>
-            <h2>結局 ${id}/5: ${ending.title}</h2>
-            <p>${ending.desc}</p>
-            <button class="btn" onclick="location.reload()">重新輪迴</button>
-            <br><br>
-            <button style="background:none; border:none; color:#666; text-decoration:underline" onclick="openCollectionFromEnd()">查看結局庫</button>
-        `;
+        div.style.textAlign = "center"; div.style.color = "gold"; div.style.zIndex = "2000";
+        div.innerHTML = `<h1 style="font-size: 4rem">${ending.icon}</h1><h2>結局 ${id}/5: ${ending.title}</h2><p>${ending.desc}</p><button class="btn" onclick="location.reload()">重新輪迴</button><br><br><button style="background:none; border:none; color:#666; text-decoration:underline" onclick="openCollectionFromEnd()">查看結局庫</button>`;
         document.body.appendChild(div);
     }
 
     function openCollection() {
-        const grid = document.getElementById('ending-grid');
-        grid.innerHTML = "";
-        
+        const grid = document.getElementById('ending-grid'); grid.innerHTML = "";
         endingsList.forEach(end => {
             const isUnlocked = gameData.endings.includes(end.id);
-            const card = document.createElement('div');
-            card.className = `ending-card ${isUnlocked ? 'unlocked' : ''}`;
-            card.innerHTML = `
-                <div class="ending-icon">${isUnlocked ? end.icon : '🔒'}</div>
-                <div style="font-weight:bold">${isUnlocked ? end.title : '???'}</div>
-                <div style="font-size:0.8rem; margin-top:5px;">${isUnlocked ? end.desc : '繼續受苦來解鎖此結局'}</div>
-            `;
+            const card = document.createElement('div'); card.className = `ending-card ${isUnlocked ? 'unlocked' : ''}`;
+            card.innerHTML = `<div class="ending-icon">${isUnlocked ? end.icon : '🔒'}</div><div style="font-weight:bold">${isUnlocked ? end.title : '???'}</div><div style="font-size:0.8rem; margin-top:5px;">${isUnlocked ? end.desc : '繼續受苦來解鎖'}</div>`;
             grid.appendChild(card);
         });
-
         document.getElementById('ending-modal').style.display = 'block';
     }
-
-    function closeCollection() {
-        document.getElementById('ending-modal').style.display = 'none';
-    }
-    
-    function openCollectionFromEnd() {
-        openCollection();
-        document.querySelector('.close-btn').onclick = () => location.reload();
-    }
+    function closeCollection() { document.getElementById('ending-modal').style.display = 'none'; }
+    function openCollectionFromEnd() { openCollection(); document.querySelector('.close-btn').onclick = () => location.reload(); }
 
     initGame();
-
 </script>
 </body>
 </html>
