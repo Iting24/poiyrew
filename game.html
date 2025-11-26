@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小明的完美一天 V3.0: 最終回</title>
+    <title>小明的完美一天 V3.1: 平衡修正版</title>
     <style>
         :root {
             --bg-color: #050505;
@@ -49,7 +49,7 @@
             flex-direction: column;
             border: 2px solid #333;
             box-shadow: 0 0 50px rgba(0,255,0,0.1);
-            perspective: 1000px; /* 3D 效果 */
+            perspective: 1000px;
         }
 
         /* === 頂部資訊列 === */
@@ -63,10 +63,7 @@
             font-size: 0.9rem;
             z-index: 10;
         }
-        .progress-bar-bg { width: 100px; height: 10px; background: #333; display: inline-block; margin-left: 10px; }
-        .progress-bar-fill { height: 100%; background: var(--warn-color); width: 0%; transition: width 0.3s; }
 
-        /* === 收藏庫按鈕 === */
         #collection-btn {
             background: none; border: 1px solid #666; color: #888; cursor: pointer; padding: 5px 10px;
         }
@@ -144,7 +141,7 @@
             cursor: pointer;
             box-shadow: 4px 4px 0 #000;
             transition: transform 0.1s, background 0.2s;
-            flex: 1 1 40%; /* RWD: 手機上按鈕會變大 */
+            flex: 1 1 40%;
             max-width: 400px;
         }
         .btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
@@ -156,17 +153,28 @@
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 80%;
-            max-width: 400px;
-            background: rgba(0,0,0,0.9);
+            width: 90%;
+            max-width: 500px;
+            background: rgba(0,0,0,0.95);
             border: 2px solid gold;
             padding: 20px;
             text-align: center;
             z-index: 50;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
         }
-        #tug-bar { width: 100%; height: 20px; background: #333; margin: 20px 0; position: relative; border-radius: 10px; overflow: hidden;}
-        #tug-zone { position: absolute; left: 40%; width: 20%; height: 100%; background: rgba(0,255,0,0.3); z-index: 1; }
-        #tug-indicator { width: 10px; height: 100%; background: gold; position: absolute; left: 50%; transition: left 0.05s linear; z-index: 2; box-shadow: 0 0 10px gold;}
+        #tug-bar { 
+            width: 100%; height: 30px; background: #333; margin: 20px 0; 
+            position: relative; border-radius: 15px; overflow: hidden; border: 1px solid #555;
+        }
+        /* 安全區變寬 */
+        #tug-zone { position: absolute; left: 30%; width: 40%; height: 100%; background: rgba(0,255,0,0.2); z-index: 1; border-left: 1px dashed #0f0; border-right: 1px dashed #0f0;}
+        #tug-indicator { 
+            width: 15px; height: 100%; background: gold; 
+            position: absolute; left: 50%; top:0;
+            transition: left 0.05s linear; z-index: 2; 
+            box-shadow: 0 0 10px gold; border-radius: 2px;
+        }
+        #game-progress { font-size: 0.8rem; color: #0f0; margin-bottom: 5px; }
 
         /* === 結局收藏庫 Modal === */
         #ending-modal {
@@ -215,12 +223,13 @@
             
             <div id="red-envelope-game">
                 <h3 style="color: gold;">🧧 紅包推拉戰</h3>
-                <p style="font-size: 0.8rem;">推辭太久=虛偽，收太快=貪婪。<br>保持指標在綠色區域 5 秒！</p>
+                <p style="font-size: 0.9rem; color:#ccc;">將金條保持在<span style="color:#0f0">綠色區域</span>內！</p>
+                <div id="game-progress">禮貌值累積: 0%</div>
                 <div id="tug-bar">
                     <div id="tug-zone"></div>
                     <div id="tug-indicator"></div>
                 </div>
-                <button class="btn" id="tug-btn" style="width:100%; background:gold; border-color:orange;">推辭 (連點!)</button>
+                <button class="btn" id="tug-btn" style="width:100%; background:gold; border-color:orange; color:#000;">👇 點擊推辭 (不要連點太快)</button>
             </div>
         </div>
 
@@ -253,7 +262,7 @@
         { id: 5, icon: "🤡", title: "小丑", desc: "你試圖反抗，但只是在搞笑。" }
     ];
 
-    // === 音效引擎 (Web Audio API) ===
+    // === 音效引擎 ===
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playTone(freq, type, dur) {
         if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -278,7 +287,8 @@
         stress: document.getElementById('stress-display'),
         gameStage: document.getElementById('game-stage'),
         redGame: document.getElementById('red-envelope-game'),
-        tugIndicator: document.getElementById('tug-indicator')
+        tugIndicator: document.getElementById('tug-indicator'),
+        gameProgress: document.getElementById('game-progress')
     };
 
     function updateStress(val) {
@@ -304,7 +314,6 @@
         playTone(600, 'sine', 0.1);
     }
 
-    // 打字機效果
     let typeInterval;
     function speak(text, callback) {
         els.text.innerHTML = "";
@@ -330,16 +339,14 @@
             btn.innerText = opt.text;
             btn.onclick = opt.action;
             
-            // 叛逆按鈕邏輯 (移動)
             if(opt.rebel) {
                 btn.onmouseover = () => {
-                    if(window.innerWidth > 768) { // 只在電腦版移動，手機版不移動不然太難
+                    if(window.innerWidth > 768) { 
                         const x = (Math.random() - 0.5) * 300;
                         const y = (Math.random() - 0.5) * 100;
                         btn.style.transform = `translate(${x}px, ${y}px)`;
                     }
                 };
-                // 手機版：點擊有 50% 機率失效並嘲諷
                 if(window.innerWidth <= 768) {
                     btn.onclick = () => {
                         if(Math.random() > 0.5) opt.action();
@@ -351,7 +358,7 @@
         });
     }
 
-    // === 遊戲流程控制 ===
+    // === 遊戲流程 ===
 
     function initGame() {
         gameData.stress = 0;
@@ -370,7 +377,7 @@
         speak("照照鏡子。你的黑眼圈不夠深，代表你昨天不夠努力。現在，做出選擇。", () => {
             makeButtons([
                 { text: "冷水洗臉 (清醒)", action: sceneRelatives },
-                { text: "看著鏡子發呆", action: () => { updateStress(10); unlockEnding(5); } } // 直接觸發小丑結局
+                { text: "看著鏡子發呆", action: () => { updateStress(10); unlockEnding(5); } } 
             ]);
         });
     }
@@ -384,36 +391,46 @@
         });
     }
 
-    // === 迷你遊戲：紅包推拉戰 ===
+    // === 修正版：紅包推拉戰 V3.1 ===
     function startRedEnvelopeGame() {
-        els.btns.innerHTML = ""; // 隱藏按鈕
+        els.btns.innerHTML = "";
         els.redGame.style.display = 'block';
         
-        let position = 80; // 0 = 左(推辭), 100 = 右(收下). 初始在 80 (對方硬塞)
+        let position = 80; // 0 = 左(推辭), 100 = 右(收下). 初始在 80
         let timeInZone = 0;
+        const targetTime = 3.0; // 只需要3秒
         let gameLoop;
         let isRunning = true;
 
         const btn = document.getElementById('tug-btn');
-        // 手機與電腦的連點處理
-        btn.onclick = () => { position -= 8; playTone(200, 'square', 0.1); }; 
+        // 修正：增加點擊的推回力度，讓操作更靈敏
+        btn.onclick = () => { 
+            position -= 6; // 原本是 8，稍微調小一點防止按太快飛出去，但配合變慢的自動速度，這樣剛好
+            if(position < 0) position = 0;
+            playTone(200, 'square', 0.1); 
+        }; 
 
         gameLoop = setInterval(() => {
             if(!isRunning) return;
 
-            // 自動增加 (親戚硬塞)
-            position += 1.5; 
+            // 修正：大幅降低親戚硬塞的速度 (原本是 1.5 -> 0.4)
+            position += 0.4; 
             
-            // 更新 UI
             els.tugIndicator.style.left = position + "%";
 
-            // 判斷區域 (40-60是綠色區)
-            if(position >= 40 && position <= 60) {
-                timeInZone += 0.1;
+            // 修正：擴大判定區間 (30-70)
+            if(position >= 30 && position <= 70) {
+                timeInZone += 0.05;
                 els.tugIndicator.style.backgroundColor = "#0f0";
             } else {
                 els.tugIndicator.style.backgroundColor = "gold";
             }
+
+            // 更新進度條文字
+            let progress = Math.min(100, (timeInZone / targetTime) * 100);
+            els.gameProgress.innerText = `禮貌值累積: ${progress.toFixed(0)}%`;
+            els.gameProgress.style.width = progress + "%";
+            els.gameProgress.style.backgroundColor = `rgba(0, 255, 0, 0.5)`;
 
             // 失敗判定
             if(position <= 0) {
@@ -423,7 +440,7 @@
             }
 
             // 勝利判定
-            if(timeInZone >= 5) {
+            if(timeInZone >= targetTime) {
                 endGame(true, "完美的推拉藝術！你成功收下紅包並保住了面子。");
             }
 
@@ -453,23 +470,20 @@
     }
 
     function secretEscape() {
-        // 叛逆按鈕如果真的被點到
         unlockEnding(3);
     }
 
     function sceneFinalChoice() {
-        // 這裡決定是否成為完美的螺絲釘
         speak("你工作了 12 個小時。老闆問：『小明，這裡有個 bug，你能留下來修嗎？』(現在是凌晨 2 點)", () => {
             makeButtons([
                 { text: "好的老闆，這是我的榮幸", action: () => unlockEnding(2) },
-                { text: "翻桌 (Flip Table)", action: () => { updateStress(100); } } // 導致壓力爆表
+                { text: "翻桌 (Flip Table)", action: () => { updateStress(100); } } 
             ]);
         });
     }
 
     // === 結局系統 ===
     function unlockEnding(id) {
-        // 檢查是否已解鎖
         if(!gameData.endings.includes(id)) {
             gameData.endings.push(id);
             localStorage.setItem('xiaoming_endings', JSON.stringify(gameData.endings));
@@ -477,7 +491,6 @@
 
         const ending = endingsList.find(e => e.id === id);
         
-        // 結局畫面
         document.body.style.background = "#000";
         els.gameStage.style.display = "none";
         
@@ -496,7 +509,6 @@
         document.body.appendChild(div);
     }
 
-    // === 收藏庫介面控制 ===
     function openCollection() {
         const grid = document.getElementById('ending-grid');
         grid.innerHTML = "";
@@ -522,11 +534,9 @@
     
     function openCollectionFromEnd() {
         openCollection();
-        // 修改關閉按鈕行為以重整頁面
         document.querySelector('.close-btn').onclick = () => location.reload();
     }
 
-    // 啟動
     initGame();
 
 </script>
