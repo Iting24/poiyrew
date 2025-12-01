@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小明的完美一天 V12.1: 難度平衡版</title>
+    <title>小明的完美一天 V13.0: 視覺重製版</title>
     <style>
         :root {
             --bg-color: #050505;
@@ -11,6 +11,7 @@
             --warn-color: #f00;
             --highlight: #ffeb3b;
             --dream-color: #0ff;
+            --bsod-blue: #0000aa; /* 藍屏死機色 */
         }
         
         * { box-sizing: border-box; touch-action: manipulation; user-select: none; }
@@ -184,7 +185,7 @@
     <div id="dream-glitch" class="glitch-obj">ERROR_404_FREEDOM</div>
     
     <div id="boot-screen">
-        <div>ASIAN PARENT SYSTEM V12.1</div>
+        <div>ASIAN PARENT SYSTEM V13.0</div>
         <div>(C) 2025 Perfection Corp.</div>
         <br>
         <div id="boot-text"></div>
@@ -351,7 +352,7 @@
     function playIntroStory() {
         els.introScreen.style.display = 'flex';
         startAmbience();
-        const storyText = `歡迎來到《亞洲人生模擬器 V12.1》。\n\n受試者：小明\n任務：達成完美。\n\n請注意：任何微小的錯誤都將導致評價下降。\n系統正在載入社會壓力模組...\n`;
+        const storyText = `歡迎來到《亞洲人生模擬器 V13.0》。\n\n受試者：小明\n任務：達成完美。\n\n請注意：任何微小的錯誤都將導致評價下降。\n系統正在載入社會壓力模組...\n`;
         let i = 0;
         function typeWriter() {
             if (i < storyText.length) {
@@ -472,8 +473,7 @@
         els.tugBtn.onclick = () => { position -= 9; if(position < 0) position = 0; playTone(200, 'square', 0.1); }; 
         gameLoop = setInterval(() => {
             if(!isRunning) return;
-            // 難度平衡：增加天數係數但設定上限，基礎速度降低
-            let dayFactor = Math.min(currentDay * 0.05, 1.0); // 上限 1.0
+            let dayFactor = Math.min(currentDay * 0.05, 1.0); 
             position += 0.3 + dayFactor; 
             
             els.tugIndicator.style.left = position + "%";
@@ -506,7 +506,7 @@
     function startExamGame() {
         els.tutorial.style.display = 'none'; els.examGame.style.display = 'block'; els.resultOverlay.style.display = 'none';
         let cursorX = 0; let direction = 1; 
-        let speed = 1.5 + Math.min(currentDay * 0.1, 1.5); // 難度封頂
+        let speed = 1.5 + Math.min(currentDay * 0.1, 1.5);
         let isRunning = true; let gameLoop;
         let targetX = 70 + Math.random() * 20; els.examTarget.style.left = targetX + "%";
         let tolerance = 4.0; els.examTarget.style.width = (tolerance * 2) + "%"; 
@@ -589,11 +589,11 @@
             els.dreamGlitch.style.left = (20 + Math.random() * 60) + "%";
             els.dreamGlitch.style.top = (20 + Math.random() * 60) + "%";
             
-            // 修正：強制點擊觸發，不管怎樣
+            // 強制點擊觸發
             els.dreamGlitch.onmousedown = function(e) {
-                e.stopPropagation(); // 防止點到背景
+                e.stopPropagation();
                 isRunning = false;
-                // 清除所有 Interval
+                // 清除 Interval
                 let id = window.setTimeout(function() {}, 0);
                 while (id--) { window.clearTimeout(id); }
                 unlockEnding(3);
@@ -602,7 +602,7 @@
 
         const gameLoop = setInterval(() => {
             if(!isRunning) { clearInterval(gameLoop); return; }
-            successLevel -= 0.5 * Math.min(currentDay * 0.5, 2.0); // 難度封頂
+            successLevel -= 0.5 * Math.min(currentDay * 0.5, 2.0); 
             els.dreamFill.style.transform = `scaleX(${successLevel / 100})`;
             if(successLevel <= 0) { isRunning = false; els.dreamGame.style.display = 'none'; updateStress(100); }
         }, 50);
@@ -643,12 +643,31 @@
     function unlockEnding(id) {
         if(!gameData.endings.includes(id)) { gameData.endings.push(id); localStorage.setItem('xiaoming_endings', JSON.stringify(gameData.endings)); }
         const ending = endingsList.find(e => e.id === id);
-        document.body.style.background = "#000"; els.gameStage.style.display = "none"; els.dreamGlitch.style.display = 'none';
-        const div = document.createElement('div'); div.style.textAlign = "center"; div.style.color = "gold"; div.style.zIndex = "2000";
-        let extraArt = "";
-        if(id === 3) extraArt = `<pre style="font-size:10px; line-height:10px; color:#0ff;">\n      .\n    /' \\\n   /   | .---.  |\n  |    |/  _  \\|\n  |    |\\   _  /|\n   \\   | '---'  |\n    \\./         \\./\n   FREEDOM UNLOCKED\n</pre>`;
-        div.innerHTML = `${extraArt}<h1 style="font-size: 4rem">${ending.icon}</h1><h2>結局 ${id}/7: ${ending.title}</h2><p>${ending.desc}</p><button class="btn" onclick="location.reload()">重新輪迴</button><br><br><button style="background:none; border:none; color:#666; text-decoration:underline" onclick="openCollectionFromEnd()">查看結局庫</button>`;
-        document.body.appendChild(div);
+        
+        if (id === 3) {
+            // 真結局特殊視覺：BSOD 藍屏死機風格
+            document.body.style.background = "var(--bsod-blue)";
+            document.body.innerHTML = `
+                <div style="font-family: 'Courier New', monospace; color: #fff; text-align: left; padding: 50px; width: 100%; height: 100%;">
+                    <h1>:(</h1>
+                    <br>
+                    <p>Your simulation ran into a problem and needs to restart.</p>
+                    <p>We're just collecting some error info, and then we'll restart for you.</p>
+                    <br><br>
+                    <div style="font-size: 5rem; text-align: center;">🕊️ ⛓️‍💥</div>
+                    <h2 style="text-align: center;">FREEDOM UNLOCKED</h2>
+                    <br><br>
+                    <p>Stop Code: SYSTEM_DESTROYED</p>
+                    <button class="btn" style="background:#fff; color:#000; margin-top:50px;" onclick="location.reload()">重新啟動系統</button>
+                </div>
+            `;
+        } else {
+            // 一般結局
+            document.body.style.background = "#000"; els.gameStage.style.display = "none"; els.dreamGlitch.style.display = 'none';
+            const div = document.createElement('div'); div.style.textAlign = "center"; div.style.color = "gold"; div.style.zIndex = "2000";
+            div.innerHTML = `<h1 style="font-size: 4rem">${ending.icon}</h1><h2>結局 ${id}/7: ${ending.title}</h2><p>${ending.desc}</p><button class="btn" onclick="location.reload()">重新輪迴</button><br><br><button style="background:none; border:none; color:#666; text-decoration:underline" onclick="openCollectionFromEnd()">查看結局庫</button>`;
+            document.body.appendChild(div);
+        }
     }
 
     function openCollection() {
