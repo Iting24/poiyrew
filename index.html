@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小明的完美一天 V10.0: 導演剪輯版</title>
+    <title>小明的完美一天 V11.0: 沉浸敘事版</title>
     <style>
         :root {
             --bg-color: #050505;
@@ -28,7 +28,7 @@
             align-items: center;
         }
 
-        /* === CRT 濾鏡與掃描線 === */
+        /* === CRT 濾鏡 === */
         #crt-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
@@ -37,12 +37,22 @@
             box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
         }
 
-        /* === 開機動畫層 === */
-        #boot-screen {
+        /* === 開機與前導故事層 === */
+        #boot-screen, #intro-story-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 9000;
-            display: flex; flex-direction: column; justify-content: flex-start; padding: 40px;
-            color: #0f0; font-family: monospace; font-size: 1.2rem;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 40px;
+            color: #0f0; font-family: monospace; font-size: 1.1rem; line-height: 1.8;
+        }
+
+        #boot-text { align-self: flex-start; } /* BIOS 文字靠左 */
+
+        /* 故事文字容器 */
+        #story-content {
+            max-width: 600px;
+            text-align: left;
+            white-space: pre-wrap; /* 保留換行 */
         }
 
         /* === 時光轉場黑幕 === */
@@ -62,12 +72,11 @@
             border: 2px solid #333;
             box-shadow: 0 0 50px rgba(0,255,0,0.1);
             transition: filter 0.2s;
+            opacity: 0; /* 預設隱藏，等故事說完 */
+            transition: opacity 1s;
         }
 
-        /* 故障效果 Class */
-        .glitch-effect {
-            animation: glitch-anim 0.3s infinite;
-        }
+        .glitch-effect { animation: glitch-anim 0.3s infinite; }
 
         #hud {
             padding: 10px 20px; background: #222; border-bottom: 2px solid #444;
@@ -112,7 +121,16 @@
             border-color: #0a0 !important;
             animation: pulse 2s infinite;
         }
+        .start-sim-btn {
+            margin-top: 30px; background: #000; color: #0f0; border: 2px solid #0f0;
+            padding: 15px 40px; font-family: monospace; font-size: 1.2rem; cursor: pointer;
+            display: none; /* 故事說完才顯示 */
+            animation: blink 1s infinite;
+        }
+        .start-sim-btn:hover { background: #0f0; color: #000; }
+
         @keyframes pulse { 0%{box-shadow: 0 0 0 0 rgba(0,255,0,0.7);} 70%{box-shadow: 0 0 0 10px rgba(0,255,0,0);} 100%{box-shadow: 0 0 0 0 rgba(0,255,0,0);} }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         /* 小遊戲 UI */
         .mini-game-ui {
@@ -124,7 +142,6 @@
         }
         .game-bar { width: 100%; height: 40px; background: #333; margin: 20px 0; position: relative; border-radius: 20px; overflow: hidden; border: 1px solid #555; }
 
-        /* BUG 遊戲 */
         #bug-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         .bug-btn {
             position: absolute; width: 80px; height: 40px; background: #f00; color: white;
@@ -133,7 +150,6 @@
             z-index: 40; display: flex; justify-content: center; align-items: center;
         }
 
-        /* 夢想 Glitch */
         .glitch-obj {
             position: absolute; color: #0f0; font-family: monospace; font-size: 20px;
             cursor: pointer; animation: textGlitch 0.3s infinite; z-index: 100;
@@ -160,7 +176,6 @@
         }
         .tut-icon { font-size: 2rem; margin-right: 15px; min-width: 40px; text-align: center; line-height: 1;}
 
-        /* 紅包與考試元件 */
         #tug-zone { position: absolute; left: 30%; width: 40%; height: 100%; background: rgba(0,255,0,0.2); z-index: 1; border-left: 2px dashed #0f0; border-right: 2px dashed #0f0; display: flex; align-items: center; justify-content: center; color: #0f0; font-size: 0.8rem; font-weight: bold; }
         #tug-indicator { width: 20px; height: 100%; background: gold; position: absolute; left: 50%; top:0; transition: left 0.05s linear; z-index: 2; box-shadow: 0 0 10px gold; border-radius: 4px; border: 1px solid #fff; }
         #exam-cursor { width: 6px; height: 100%; background: #fff; position: absolute; left: 0; top:0; z-index: 10; transition: background-color 0.1s; }
@@ -200,10 +215,15 @@
     <div id="crt-overlay"></div>
     
     <div id="boot-screen">
-        <div>XIAOMING BIOS V10.0</div>
-        <div>Copyright (C) 2024 Asian Parents Inc.</div>
+        <div>ASIAN PARENT SYSTEM V11.0</div>
+        <div>(C) 2025 Perfection Corp.</div>
         <br>
         <div id="boot-text"></div>
+    </div>
+
+    <div id="intro-story-screen" style="display:none;">
+        <div id="story-content"></div>
+        <button class="start-sim-btn" onclick="finishIntro()">[ 初始化受試者 ]</button>
     </div>
 
     <div id="transition-overlay">
@@ -291,7 +311,7 @@
     let currentDay = parseInt(localStorage.getItem('xiaoming_day')) || 1;
     const gameData = { stress: 0, endings: JSON.parse(localStorage.getItem('xiaoming_endings')) || [] };
     
-    // === 音效系統 (新增環境音) ===
+    // === 音效系統 ===
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let ambientOsc;
     
@@ -300,8 +320,8 @@
             ambientOsc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             ambientOsc.type = 'sawtooth';
-            ambientOsc.frequency.value = 50; // 低頻噪音
-            gain.gain.value = 0.005; // 非常小聲
+            ambientOsc.frequency.value = 50; 
+            gain.gain.value = 0.005; 
             ambientOsc.connect(gain);
             gain.connect(audioCtx.destination);
             ambientOsc.start();
@@ -310,7 +330,6 @@
 
     function updateAmbience(stress) {
         if(ambientOsc) {
-            // 隨著壓力增加，音調變高，不安感增加
             ambientOsc.frequency.linearRampToValueAtTime(50 + stress * 2, audioCtx.currentTime + 0.5);
         }
     }
@@ -340,10 +359,11 @@
         dayCounter: document.getElementById('day-counter'), dreamGame: document.getElementById('dream-game'),
         dreamFill: document.getElementById('dream-fill'), dreamBtn: document.getElementById('dream-btn'),
         dreamGlitch: document.getElementById('dream-glitch'), bootText: document.getElementById('boot-text'),
-        bootScreen: document.getElementById('boot-screen')
+        bootScreen: document.getElementById('boot-screen'), introScreen: document.getElementById('intro-story-screen'),
+        storyContent: document.getElementById('story-content'), startSimBtn: document.querySelector('.start-sim-btn')
     };
 
-    // === 開機動畫 ===
+    // === 開機與前導 ===
     function runBootSequence() {
         const lines = [
             "Initializing Memory... OK",
@@ -361,13 +381,40 @@
             delay += 500;
         });
         setTimeout(() => {
-            els.bootScreen.style.opacity = '0';
-            setTimeout(() => {
-                els.bootScreen.style.display = 'none';
-                initGame();
-                startAmbience();
-            }, 1000);
+            els.bootScreen.style.display = 'none';
+            playIntroStory();
         }, delay + 1000);
+    }
+
+    function playIntroStory() {
+        els.introScreen.style.display = 'flex';
+        startAmbience(); // 開始播放低頻音效，營造氣氛
+        
+        const storyText = `歡迎來到《亞洲人生模擬器 V11.0》。\n\n受試者代號：小明 (Xiao Ming)。\n屬性：平庸、無特長。\n\n您的任務：\n引導受試者做出『正確』的選擇，達成社會期望的『完美』。\n\n警告：\n任何微小的錯誤都將導致評價下降。\n系統正在載入社會壓力模組...\n`;
+        
+        let i = 0;
+        const speed = 40;
+        
+        function typeWriter() {
+            if (i < storyText.length) {
+                els.storyContent.innerHTML += storyText.charAt(i);
+                if(i % 3 === 0) playTone(1200, 'square', 0.01); // 打字音效
+                i++;
+                setTimeout(typeWriter, speed);
+            } else {
+                els.startSimBtn.style.display = 'block';
+            }
+        }
+        typeWriter();
+    }
+
+    function finishIntro() {
+        els.introScreen.style.opacity = '0';
+        setTimeout(() => {
+            els.introScreen.style.display = 'none';
+            els.gameStage.style.opacity = '1';
+            initGame();
+        }, 1000);
     }
 
     function updateStress(val) {
@@ -377,7 +424,6 @@
         els.stress.style.color = gameData.stress > 80 ? 'red' : '#ccc';
         updateAmbience(gameData.stress);
 
-        // 視覺故障特效
         if(gameData.stress > 50) {
             els.gameStage.classList.add('glitch-effect');
         } else {
@@ -645,22 +691,11 @@
         setTimeout(() => { els.resultOverlay.style.display = "none"; callback(); }, 2000);
     }
 
-    const endingsList = [
-        { id: 1, icon: "💀", title: "過勞死", desc: "壓力爆表，系統崩潰。" },
-        { id: 2, icon: "♾️", title: "無限輪迴", desc: "你達成了完美，然後重新開始了完美的一天。" },
-        { id: 3, icon: "🔓", title: "真正的自由", desc: "你找到了系統的漏洞 (Glitch)，逃離了遊戲。" },
-        { id: 4, icon: "🤬", title: "社會性死亡", desc: "在家庭聚餐中失去了面子。" },
-        { id: 5, icon: "🤡", title: "小丑", desc: "你試圖反抗，但只是在搞笑。" },
-        { id: 6, icon: "📉", title: "家族恥辱", desc: "考試沒有拿滿分，被補習班開除。" },
-        { id: 7, icon: "☕", title: "摸魚哲學", desc: "在茶水間找到了片刻的寧靜 (隱藏結局)。" }
-    ];
-
     function unlockEnding(id) {
         if(!gameData.endings.includes(id)) { gameData.endings.push(id); localStorage.setItem('xiaoming_endings', JSON.stringify(gameData.endings)); }
         const ending = endingsList.find(e => e.id === id);
         document.body.style.background = "#000"; els.gameStage.style.display = "none";
         const div = document.createElement('div'); div.style.textAlign = "center"; div.style.color = "gold"; div.style.zIndex = "2000";
-        // ASCII ART Reward for True Ending
         let extraArt = "";
         if(id === 3) {
             extraArt = `<pre style="font-size:10px; line-height:10px; color:#0ff;">
@@ -691,7 +726,6 @@
     function closeCollection() { document.getElementById('ending-modal').style.display = 'none'; }
     function openCollectionFromEnd() { openCollection(); document.querySelector('.close-btn').onclick = () => location.reload(); }
 
-    // 開始
     runBootSequence();
 
 </script>
