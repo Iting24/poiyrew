@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小明的完美一天 V12.0: 終極修復版</title>
+    <title>小明的完美一天 V12.1: 難度平衡版</title>
     <style>
         :root {
             --bg-color: #050505;
@@ -72,7 +72,10 @@
             font-size: 0.9rem; z-index: 10;
         }
         #day-counter { color: var(--highlight); font-weight: bold; margin-right: 15px; }
-        #collection-btn { background: none; border: 1px solid #666; color: #888; cursor: pointer; padding: 5px 10px; }
+        .hud-btn { background: none; border: 1px solid #666; color: #888; cursor: pointer; padding: 5px 10px; margin-left: 5px; font-size: 0.8rem;}
+        .hud-btn:hover { background: #333; color: #fff; }
+        #reset-btn { border-color: #522; color: #a55; }
+        #reset-btn:hover { background: #522; color: #fff; }
 
         #scene-viewport {
             flex-grow: 1; position: relative;
@@ -130,13 +133,10 @@
             z-index: 40; display: flex; justify-content: center; align-items: center;
         }
 
-        /* 修正：亂碼按鈕的層級極高，確保可以點擊 */
         .glitch-obj {
-            position: fixed; /* 改為 fixed，脫離容器限制 */
-            color: #0f0; font-family: monospace; font-size: 24px; font-weight: bold;
+            position: fixed; color: #0f0; font-family: monospace; font-size: 24px; font-weight: bold;
             cursor: pointer; animation: textGlitch 0.3s infinite; 
-            z-index: 9999 !important; /* 最高層級 */
-            display: none; user-select: none; border: 2px dashed #0f0; padding: 10px; background: #000;
+            z-index: 9999 !important; display: none; user-select: none; border: 2px dashed #0f0; padding: 10px; background: #000;
             box-shadow: 0 0 20px #0f0;
         }
 
@@ -150,7 +150,6 @@
         .tut-icon { font-size: 2rem; margin-right: 15px; min-width: 40px; text-align: center; line-height: 1;}
 
         #tug-zone { position: absolute; left: 30%; width: 40%; height: 100%; background: rgba(0,255,0,0.2); z-index: 1; border-left: 2px dashed #0f0; border-right: 2px dashed #0f0; display: flex; align-items: center; justify-content: center; color: #0f0; font-size: 0.8rem; font-weight: bold; }
-        #tug-zone::after { content: "安全區"; }
         #tug-indicator { width: 20px; height: 100%; background: gold; position: absolute; left: 50%; top:0; transition: left 0.05s linear; z-index: 2; box-shadow: 0 0 10px gold; border-radius: 4px; border: 1px solid #fff; }
         #exam-cursor { width: 6px; height: 100%; background: #fff; position: absolute; left: 0; top:0; z-index: 10; transition: background-color 0.1s; }
         #exam-target { width: 25px; height: 100%; background: #0f0; position: absolute; right: 10%; top:0; z-index: 5; box-shadow: 0 0 10px #0f0; }
@@ -182,8 +181,10 @@
 <body>
 
     <div id="crt-overlay"></div>
-    <div id="dream-glitch" class="glitch-obj">ERROR_404_FREEDOM</div> <div id="boot-screen">
-        <div>ASIAN PARENT SYSTEM V12.0</div>
+    <div id="dream-glitch" class="glitch-obj">ERROR_404_FREEDOM</div>
+    
+    <div id="boot-screen">
+        <div>ASIAN PARENT SYSTEM V12.1</div>
         <div>(C) 2025 Perfection Corp.</div>
         <br>
         <div id="boot-text"></div>
@@ -212,7 +213,10 @@
                 <span id="day-counter">Day 1</span>
                 壓力值: <span id="stress-display">0%</span>
             </div>
-            <button id="collection-btn" onclick="openCollection()">🏆 結局圖鑑</button>
+            <div>
+                <button id="reset-btn" class="hud-btn" onclick="resetGameData()">⚠️ 重置進度</button>
+                <button id="collection-btn" class="hud-btn" onclick="openCollection()">🏆 結局圖鑑</button>
+            </div>
         </div>
 
         <div id="scene-viewport">
@@ -347,7 +351,7 @@
     function playIntroStory() {
         els.introScreen.style.display = 'flex';
         startAmbience();
-        const storyText = `歡迎來到《亞洲人生模擬器 V12.0》。\n\n受試者：小明\n任務：達成完美。\n\n請注意：任何微小的錯誤都將導致評價下降。\n系統正在載入社會壓力模組...\n`;
+        const storyText = `歡迎來到《亞洲人生模擬器 V12.1》。\n\n受試者：小明\n任務：達成完美。\n\n請注意：任何微小的錯誤都將導致評價下降。\n系統正在載入社會壓力模組...\n`;
         let i = 0;
         function typeWriter() {
             if (i < storyText.length) {
@@ -363,6 +367,13 @@
     function finishIntro() {
         els.introScreen.style.opacity = '0';
         setTimeout(() => { els.introScreen.style.display = 'none'; els.gameStage.style.opacity = '1'; initGame(); }, 1000);
+    }
+
+    function resetGameData() {
+        if(confirm("確定要重置所有進度 (包含結局與天數) 嗎？")) {
+            localStorage.clear();
+            location.reload();
+        }
     }
 
     function updateStress(val) {
@@ -458,10 +469,13 @@
         els.tutorial.style.display = 'none'; els.redGame.style.display = 'block'; els.resultOverlay.style.display = 'none'; els.redProgress.style.width = '0%';
         let position = 80; let timeInZone = 0; const targetTime = 3.0; let isRunning = true; let gameLoop;
         const newBtn = els.tugBtn.cloneNode(true); els.tugBtn.parentNode.replaceChild(newBtn, els.tugBtn); els.tugBtn = newBtn;
-        els.tugBtn.onclick = () => { position -= 7; if(position < 0) position = 0; playTone(200, 'square', 0.1); }; 
+        els.tugBtn.onclick = () => { position -= 9; if(position < 0) position = 0; playTone(200, 'square', 0.1); }; 
         gameLoop = setInterval(() => {
             if(!isRunning) return;
-            position += 0.4 * currentDay; 
+            // 難度平衡：增加天數係數但設定上限，基礎速度降低
+            let dayFactor = Math.min(currentDay * 0.05, 1.0); // 上限 1.0
+            position += 0.3 + dayFactor; 
+            
             els.tugIndicator.style.left = position + "%";
             if(position >= 30 && position <= 70) { timeInZone += 0.05; els.tugIndicator.style.backgroundColor = "#0f0"; } else { els.tugIndicator.style.backgroundColor = "gold"; }
             els.redProgress.style.width = Math.min(100, (timeInZone / targetTime) * 100) + "%";
@@ -491,7 +505,9 @@
 
     function startExamGame() {
         els.tutorial.style.display = 'none'; els.examGame.style.display = 'block'; els.resultOverlay.style.display = 'none';
-        let cursorX = 0; let direction = 1; let speed = 1.5 + (currentDay * 0.2); let isRunning = true; let gameLoop;
+        let cursorX = 0; let direction = 1; 
+        let speed = 1.5 + Math.min(currentDay * 0.1, 1.5); // 難度封頂
+        let isRunning = true; let gameLoop;
         let targetX = 70 + Math.random() * 20; els.examTarget.style.left = targetX + "%";
         let tolerance = 4.0; els.examTarget.style.width = (tolerance * 2) + "%"; 
         const newBtn = els.examBtn.cloneNode(true); els.examBtn.parentNode.replaceChild(newBtn, els.examBtn); els.examBtn = newBtn;
@@ -542,7 +558,8 @@
             bug.onmousedown = (e) => {
                 e.stopPropagation(); bugsFixed++; playTone(400 + Math.random()*400, 'square', 0.05);
                 bug.remove(); activeBugs--;
-                if(bugsFixed < 15) { setTimeout(spawnBug, 50); setTimeout(spawnBug, 100); activeBugs += 2; } else { if(activeBugs === 0) endBugGame(); }
+                if(bugsFixed < 15) { setTimeout(spawnBug, 50); setTimeout(spawnBug, 100); activeBugs += 2; } 
+                else { if(activeBugs === 0) endBugGame(); }
                 if(bugsFixed % 5 === 0) updateStress(5);
             };
             els.bugContainer.appendChild(bug);
@@ -552,11 +569,8 @@
             if(bugsFixed >= 15 && els.bugContainer.childElementCount === 0) { clearInterval(checkInterval); endBugGame(); }
         }, 500);
         function endBugGame() { 
-            speak("Bug 修好了。老闆說：『明天繼續保持。』你的選擇是？", () => {
-                 makeButtons([
-                    { text: "繼續升遷 (進入夢想)", special: 'continue', action: () => playTransition("28 歲", "夢想的虛擬空間", sceneDream) },
-                    { text: "翻桌 (我不幹了！)", action: () => unlockEnding(1) } 
-                ]);
+            speak("Bug 修好了。老闆說：『明天繼續保持。』", () => {
+                 makeButtons([ { text: ">>> 28歲：夢想彼岸", special: 'continue', action: () => playTransition("28 歲", "夢想的虛擬空間", sceneDream) } ]);
             });
         }
     }
@@ -569,24 +583,26 @@
     function startDreamGame() {
         els.btns.innerHTML = ""; els.dreamGame.style.display = 'block';
         let successLevel = 50; let isRunning = true; let clickCount = 0;
-        let gameLoop; // Declare gameLoop here
 
         setTimeout(() => {
             els.dreamGlitch.style.display = 'block';
-            els.dreamGlitch.style.left = (20 + Math.random() * 60) + "%"; // 確保在中間區域
+            els.dreamGlitch.style.left = (20 + Math.random() * 60) + "%";
             els.dreamGlitch.style.top = (20 + Math.random() * 60) + "%";
             
-            // 修正點擊判定
-            els.dreamGlitch.onclick = function() {
+            // 修正：強制點擊觸發，不管怎樣
+            els.dreamGlitch.onmousedown = function(e) {
+                e.stopPropagation(); // 防止點到背景
                 isRunning = false;
-                clearInterval(gameLoop);
+                // 清除所有 Interval
+                let id = window.setTimeout(function() {}, 0);
+                while (id--) { window.clearTimeout(id); }
                 unlockEnding(3);
             };
         }, 4000);
 
-        gameLoop = setInterval(() => {
+        const gameLoop = setInterval(() => {
             if(!isRunning) { clearInterval(gameLoop); return; }
-            successLevel -= 0.5 * currentDay; 
+            successLevel -= 0.5 * Math.min(currentDay * 0.5, 2.0); // 難度封頂
             els.dreamFill.style.transform = `scaleX(${successLevel / 100})`;
             if(successLevel <= 0) { isRunning = false; els.dreamGame.style.display = 'none'; updateStress(100); }
         }, 50);
