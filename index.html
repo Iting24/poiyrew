@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小明的完美一天 V8.0: 玩家主控版</title>
+    <title>小明的完美一天 V9.0: 輪迴終章</title>
     <style>
         :root {
             --bg-color: #050505;
             --term-color: #0f0;
             --warn-color: #f00;
             --highlight: #ffeb3b;
+            --dream-color: #0ff;
         }
         
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -34,7 +35,6 @@
             pointer-events: none; z-index: 999;
         }
 
-        /* 時光轉場黑幕 */
         #transition-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 8000;
@@ -57,6 +57,7 @@
             display: flex; justify-content: space-between; align-items: center;
             font-size: 0.9rem; z-index: 10;
         }
+        #day-counter { color: var(--highlight); font-weight: bold; margin-right: 15px; }
         #collection-btn { background: none; border: 1px solid #666; color: #888; cursor: pointer; padding: 5px 10px; }
 
         #scene-viewport {
@@ -89,7 +90,6 @@
         .btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
         .btn:hover { background: #fff; }
         
-        /* 特別的繼續按鈕樣式 */
         .continue-btn {
             background-color: #0f0 !important;
             border-color: #0a0 !important;
@@ -107,6 +107,7 @@
 
         .game-bar { width: 100%; height: 40px; background: #333; margin: 20px 0; position: relative; border-radius: 20px; overflow: hidden; border: 1px solid #555; }
 
+        /* 元件樣式 */
         #exam-cursor { width: 6px; height: 100%; background: #fff; position: absolute; left: 0; top:0; z-index: 10; transition: background-color 0.1s; }
         #exam-target { width: 25px; height: 100%; background: #0f0; position: absolute; right: 10%; top:0; z-index: 5; box-shadow: 0 0 10px #0f0; }
         .score-display { font-size: 3rem; font-weight: bold; margin-bottom: 10px; }
@@ -148,11 +149,21 @@
         }
         .tut-icon { font-size: 2rem; margin-right: 15px; min-width: 40px; text-align: center; line-height: 1;}
 
+        /* 紅包 */
         #tug-zone { position: absolute; left: 30%; width: 40%; height: 100%; background: rgba(0,255,0,0.2); z-index: 1; border-left: 2px dashed #0f0; border-right: 2px dashed #0f0; display: flex; align-items: center; justify-content: center; color: #0f0; font-size: 0.8rem; font-weight: bold; }
         #tug-zone::after { content: "安全區"; }
         #tug-indicator { width: 20px; height: 100%; background: gold; position: absolute; left: 50%; top:0; transition: left 0.05s linear; z-index: 2; box-shadow: 0 0 10px gold; border-radius: 4px; border: 1px solid #fff; }
         #game-progress-container { width: 100%; height: 8px; background: #333; margin-bottom: 10px; border-radius: 4px; overflow: hidden;}
         #game-progress { width: 0%; height: 100%; background: #0f0; transition: width 0.2s; }
+
+        /* 夢想跑步機 (新) */
+        #dream-fill { width: 100%; height: 100%; background: var(--dream-color); transform-origin: left; transform: scaleX(0.5); transition: transform 0.1s linear; }
+        .glitch-obj {
+            position: absolute; color: #0f0; font-family: monospace; font-size: 20px;
+            cursor: pointer; animation: glitchAnim 0.5s infinite; z-index: 100;
+            display: none; /* 預設隱藏 */
+            user-select: none;
+        }
 
         #ending-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -166,6 +177,7 @@
 
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
         @keyframes popIn { 0%{transform: scale(0.5); opacity:0;} 100%{transform: scale(1); opacity:1;} }
+        @keyframes glitchAnim { 0% { opacity: 1; transform: translate(0); } 20% { opacity: 0.8; transform: translate(-2px, 2px); } 40% { opacity: 1; transform: translate(2px, -2px); } 100% { opacity: 1; transform: translate(0); } }
         .shake { animation: shake 0.5s infinite; }
         @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -2px); } 100% { transform: translate(1px, -1px); } }
 
@@ -189,12 +201,18 @@
 
     <div id="game-stage">
         <div id="hud">
-            <div>壓力值: <span id="stress-display">0%</span></div>
+            <div>
+                <span id="day-counter">Day 1</span>
+                壓力值: <span id="stress-display">0%</span>
+            </div>
             <button id="collection-btn" onclick="openCollection()">🏆 結局圖鑑</button>
         </div>
 
         <div id="scene-viewport">
             <div id="bug-container"></div>
+            
+            <div id="dream-glitch" class="glitch-obj">ERROR_404_FREEDOM</div>
+
             <div id="main-scene" class="scene-content">
                 <div class="emoji-actor" id="visual-emoji">🤖</div>
                 <div class="location-tag" id="visual-loc">SYSTEM BOOT</div>
@@ -226,6 +244,16 @@
                 </div>
                 <button class="btn" id="exam-btn" style="width:100%; background:#fff; border-color:#ccc; color:#000; font-size: 1.1rem; padding: 10px;">🛑 停止!</button>
             </div>
+
+            <div id="dream-game" class="mini-game-ui" style="border-color: var(--dream-color);">
+                <h3 style="color: var(--dream-color); margin: 0 0 10px 0;">✨ 追求夢想</h3>
+                <div style="font-size: 0.8rem; color: #ccc; margin-bottom: 10px;">點擊以維持成功指數，不要讓它歸零！</div>
+                <div class="game-bar" style="background: #000; border-color: var(--dream-color);">
+                    <div id="dream-fill"></div>
+                </div>
+                <button class="btn" id="dream-btn" style="width:100%; background:var(--dream-color); border-color:#fff; color:#000; font-size: 1.2rem; padding: 15px;">🏃 努力奔跑 (點擊!)</button>
+            </div>
+
         </div>
 
         <div id="control-panel">
@@ -241,11 +269,14 @@
     </div>
 
 <script>
+    // 讀取當前輪迴次數
+    let currentDay = parseInt(localStorage.getItem('xiaoming_day')) || 1;
+    
     const gameData = { stress: 0, endings: JSON.parse(localStorage.getItem('xiaoming_endings')) || [] };
     const endingsList = [
         { id: 1, icon: "💀", title: "過勞死", desc: "壓力爆表，系統崩潰。" },
-        { id: 2, icon: "⚙️", title: "完美的螺絲釘", desc: "工作到失去自我，成為公司的一部分。" },
-        { id: 3, icon: "🏃", title: "逃離迴圈", desc: "你發現了系統的漏洞並逃走了。" },
+        { id: 2, icon: "♾️", title: "無限輪迴", desc: "你達成了完美，然後重新開始了完美的一天。" },
+        { id: 3, icon: "🔓", title: "真正的自由", desc: "你找到了系統的漏洞 (Glitch)，逃離了遊戲。" },
         { id: 4, icon: "🤬", title: "社會性死亡", desc: "在家庭聚餐中失去了面子。" },
         { id: 5, icon: "🤡", title: "小丑", desc: "你試圖反抗，但只是在搞笑。" },
         { id: 6, icon: "📉", title: "家族恥辱", desc: "考試沒有拿滿分，被補習班開除。" },
@@ -274,7 +305,10 @@
         examGame: document.getElementById('exam-game'), examCursor: document.getElementById('exam-cursor'),
         examBtn: document.getElementById('exam-btn'), examScore: document.getElementById('exam-score'),
         bugContainer: document.getElementById('bug-container'), examTarget: document.getElementById('exam-target'),
-        transOverlay: document.getElementById('transition-overlay'), transYear: document.getElementById('trans-year'), transLoc: document.getElementById('trans-loc')
+        transOverlay: document.getElementById('transition-overlay'), transYear: document.getElementById('trans-year'), transLoc: document.getElementById('trans-loc'),
+        dayCounter: document.getElementById('day-counter'), dreamGame: document.getElementById('dream-game'),
+        dreamFill: document.getElementById('dream-fill'), dreamBtn: document.getElementById('dream-btn'),
+        dreamGlitch: document.getElementById('dream-glitch')
     };
 
     function updateStress(val) {
@@ -290,6 +324,7 @@
         els.emoji.innerText = emoji; els.loc.innerText = loc;
         playTone(600, 'sine', 0.1);
         els.bugContainer.innerHTML = '';
+        els.dreamGlitch.style.display = 'none'; // 隱藏 glitch
     }
 
     function playTransition(year, loc, callback) {
@@ -310,12 +345,15 @@
     function speak(text, callback) {
         els.text.innerHTML = ""; els.btns.innerHTML = "";
         let i = 0; clearInterval(typeInterval);
+        // 隨著天數增加，旁白語速變快 (壓力感)
+        let speed = Math.max(10, 30 - currentDay * 2); 
+        
         typeInterval = setInterval(() => {
             els.text.innerHTML += text.charAt(i);
             if(i % 3 === 0) playTone(800 + Math.random()*200, 'square', 0.05);
             i++;
             if(i >= text.length) { clearInterval(typeInterval); if(callback) callback(); }
-        }, 30);
+        }, speed);
     }
 
     function makeButtons(options) {
@@ -324,7 +362,7 @@
             const btn = document.createElement('button');
             btn.className = 'btn'; btn.innerText = opt.text; 
             btn.onclick = opt.action;
-            if (opt.special === 'continue') btn.classList.add('continue-btn'); // 加特效
+            if (opt.special === 'continue') btn.classList.add('continue-btn');
             if(opt.rebel) {
                 btn.onmouseover = () => { if(window.innerWidth > 768) { const x = (Math.random()-0.5)*300; const y = (Math.random()-0.5)*100; btn.style.transform = `translate(${x}px, ${y}px)`; }};
                 if(window.innerWidth <= 768) btn.onclick = () => { if(Math.random()>0.5) opt.action(); else speak("你以為你能反抗嗎？", () => makeButtons(options)); }
@@ -334,19 +372,25 @@
     }
 
     function initGame() {
+        els.dayCounter.innerText = `Day ${currentDay}`;
         gameData.stress = 0; updateStress(0);
-        setScene("🛌", "臥室 - 07:00");
-        speak("又是新的一天。小明，你的表弟已經考上醫學院了。你準備好起床了嗎？", () => {
+        
+        // 根據輪迴次數改變開場白
+        let intro = currentDay === 1 ? "又是新的一天。小明，你的表弟已經考上醫學院了。你準備好起床了嗎？" 
+                                     : `第 ${currentDay} 次醒來。你的表弟已經當上院長了。你還在睡？`;
+        
+        setScene("🛌", `臥室 - Day ${currentDay}`);
+        speak(intro, () => {
             makeButtons([
                 { text: "驚恐起床", action: sceneBathroom },
-                { text: "五分鐘...", action: () => { updateStress(20); speak("你浪費了五分鐘，離成功又遠了一步。", () => makeButtons([{text:"起床", action:sceneBathroom}])); } }
+                { text: "五分鐘...", action: () => { updateStress(20 * currentDay); speak("你浪費了時間。壓力倍增。", () => makeButtons([{text:"起床", action:sceneBathroom}])); } }
             ]);
         });
     }
 
     function sceneBathroom() {
         setScene("🪥", "浴室");
-        speak("照照鏡子。你的眼神還不夠銳利。你必須隨時準備好面對這個世界。", () => {
+        speak("照照鏡子。完美的儀容是成功的一半。", () => {
             makeButtons([
                 { text: "冷水洗臉", action: () => {
                     playTransition("10 歲", "老家 - 過年", sceneRelatives);
@@ -358,7 +402,7 @@
 
     function sceneRelatives() {
         setScene("🧧", "過年聚餐");
-        speak("大姑姑拿出了紅包。這是禮貌的戰場。記住：不能太貪心，也不能太失禮。", () => {
+        speak("大姑姑拿出了紅包。禮貌的戰場開啟了。", () => {
             makeButtons([{ text: "查看戰術指南 (開始)", action: showRedEnvelopeTutorial }]);
         });
     }
@@ -366,8 +410,8 @@
     function showRedEnvelopeTutorial() {
         document.getElementById('tut-title').innerText = "🧧 紅包戰術";
         document.getElementById('tut-content').innerHTML = `
-            <div class="tutorial-step"><div class="tut-icon">🤖</div><div><strong>自動移動：</strong>紅包往右跑 (親戚硬塞)。<br><span style="color:#f55; font-size:0.9em">碰到右邊 = 貪婪 (失敗)</span></div></div>
-            <div class="tutorial-step"><div class="tut-icon">👇</div><div><strong>你的操作：</strong>點按鈕往左推 (拒絕)。<br><span style="color:#f55; font-size:0.9em">碰到左邊 = 不給面子 (失敗)</span></div></div>
+            <div class="tutorial-step"><div class="tut-icon">🤖</div><div><strong>自動移動：</strong>紅包往右跑 (親戚硬塞)。</div></div>
+            <div class="tutorial-step"><div class="tut-icon">👇</div><div><strong>你的操作：</strong>點按鈕往左推 (拒絕)。</div></div>
             <div class="tutorial-step"><div class="tut-icon">✅</div><div><strong>勝利條件：</strong>停在綠色區域滿 3 秒。</div></div>
             <button class="btn" onclick="startRedEnvelopeGame()" style="width:100%; background:#0f0; margin-top:10px">開始</button>
         `;
@@ -375,53 +419,36 @@
     }
 
     function startRedEnvelopeGame() {
-        els.tutorial.style.display = 'none'; 
-        els.redGame.style.display = 'block'; 
-        els.resultOverlay.style.display = 'none';
-        els.gameProgress.style.width = '0%';
-        
+        els.tutorial.style.display = 'none'; els.redGame.style.display = 'block'; els.resultOverlay.style.display = 'none'; els.gameProgress.style.width = '0%';
         let position = 80; let timeInZone = 0; const targetTime = 3.0; let isRunning = true; let gameLoop;
         const newBtn = els.tugBtn.cloneNode(true); els.tugBtn.parentNode.replaceChild(newBtn, els.tugBtn); els.tugBtn = newBtn;
-
         els.tugBtn.onclick = () => { position -= 7; if(position < 0) position = 0; playTone(200, 'square', 0.1); }; 
-
         gameLoop = setInterval(() => {
             if(!isRunning) return;
-            position += 0.4; 
+            position += 0.4 * currentDay; // 難度隨天數增加
             els.tugIndicator.style.left = position + "%";
             if(position >= 30 && position <= 70) { timeInZone += 0.05; els.tugIndicator.style.backgroundColor = "#0f0"; } 
             else { els.tugIndicator.style.backgroundColor = "gold"; }
-            
             els.gameProgress.style.width = Math.min(100, (timeInZone / targetTime) * 100) + "%";
-
-            if(position <= 0) endGame(false, "太用力了！你把姑姑的手打折了！");
-            else if (position >= 100) endGame(false, "太快收下！親戚在背後說你貪財。");
-            if(timeInZone >= targetTime) endGame(true, "完美的推拉！你保住了面子。");
+            if(position <= 0) endGame(false, "太用力了！"); else if (position >= 100) endGame(false, "太貪心了！");
+            if(timeInZone >= targetTime) endGame(true, "完美的推拉！");
         }, 50);
-
         function endGame(win, msg) {
             isRunning = false; clearInterval(gameLoop);
             showResult(win, win ? "完美！" : "失敗！", () => {
                 els.redGame.style.display = 'none';
                 if(win) {
-                    // === 修改點：不再自動跳轉，而是顯示按鈕 ===
-                    speak("完美的禮貌。親戚們很滿意。你拿到了一筆錢，但這筆錢會立刻被媽媽存起來。", () => {
-                        makeButtons([{
-                            text: ">>> 16歲：補習班", 
-                            special: 'continue',
-                            action: () => playTransition("16 歲", "補習班 - 模擬考", sceneCramSchool)
-                        }]);
+                    speak("完美的禮貌。錢被媽媽存起來了，說是為了你的未來。", () => {
+                        makeButtons([{ text: ">>> 16歲：補習班", special: 'continue', action: () => playTransition("16 歲", "補習班 - 模擬考", sceneCramSchool) }]);
                     });
-                } else { 
-                    updateStress(50); speak(msg, () => unlockEnding(4)); 
-                }
+                } else { updateStress(50); speak(msg, () => unlockEnding(4)); }
             });
         }
     }
 
     function sceneCramSchool() {
         setScene("📚", "補習班");
-        speak("雖然吃完了飯，但你的作業還沒寫完。在這個世界上，只有滿分才是及格。準備好考試了嗎？", () => {
+        speak("只有滿分才是及格。準備好面對試卷了嗎？", () => {
              makeButtons([{ text: "面對試卷 (開始)", action: showExamTutorial }]);
         });
     }
@@ -429,77 +456,49 @@
     function showExamTutorial() {
         document.getElementById('tut-title').innerText = "📝 完美主義考試";
         document.getElementById('tut-content').innerHTML = `
-            <div class="tutorial-step"><div class="tut-icon">⚡</div><div><strong>光標移動：</strong>白色光標會快速來回移動。</div></div>
-            <div class="tutorial-step"><div class="tut-icon">🎯</div><div><strong>你的目標：</strong>按下停止鍵，讓光標<br>停在<span style="color:#0f0">綠色滿分線</span>上。<br><span style="color:#0f0; font-size:0.8em;">(提示：當光標變綠時立刻按！)</span></div></div>
-            <div class="tutorial-step"><div class="tut-icon">⚠️</div><div><strong>警告：</strong>只有 100 分是合格。<br>99 分也是失敗。</div></div>
+            <div class="tutorial-step"><div class="tut-icon">🎯</div><div><strong>目標：</strong>按下停止鍵，讓光標<br>停在<span style="color:#0f0">綠色滿分線</span>上。</div></div>
+            <div class="tutorial-step"><div class="tut-icon">⚠️</div><div><strong>警告：</strong>只有 100 分是合格。</div></div>
             <button class="btn" onclick="startExamGame()" style="width:100%; background:#fff; color:#000; margin-top:10px">開始考試</button>
         `;
         els.tutorial.style.display = 'flex';
     }
 
     function startExamGame() {
-        els.tutorial.style.display = 'none';
-        els.examGame.style.display = 'block';
-        els.resultOverlay.style.display = 'none';
-        
-        let cursorX = 0; let direction = 1; let speed = 1.5; 
+        els.tutorial.style.display = 'none'; els.examGame.style.display = 'block'; els.resultOverlay.style.display = 'none';
+        let cursorX = 0; let direction = 1; let speed = 1.5 + (currentDay * 0.2); // 難度增加
         let isRunning = true; let gameLoop;
-        
-        let targetX = 70 + Math.random() * 20; 
-        els.examTarget.style.left = targetX + "%";
-        let tolerance = 4.0; 
-        els.examTarget.style.width = (tolerance * 2) + "%"; 
-
+        let targetX = 70 + Math.random() * 20; els.examTarget.style.left = targetX + "%";
+        let tolerance = 4.0; els.examTarget.style.width = (tolerance * 2) + "%"; 
         const newBtn = els.examBtn.cloneNode(true); els.examBtn.parentNode.replaceChild(newBtn, els.examBtn); els.examBtn = newBtn;
-
         gameLoop = setInterval(() => {
             if(!isRunning) return;
             cursorX += speed * direction;
             if(cursorX > 98 || cursorX < 0) direction *= -1;
             els.examCursor.style.left = cursorX + "%";
-            
             let isInZone = (cursorX >= targetX && cursorX <= targetX + tolerance*2) || (Math.abs(cursorX - targetX) < tolerance);
-            
-            if(isInZone) {
-                els.examCursor.style.backgroundColor = "#0f0"; 
-                els.examCursor.style.boxShadow = "0 0 10px #0f0";
-            } else {
-                els.examCursor.style.backgroundColor = "#fff";
-                els.examCursor.style.boxShadow = "none";
-            }
+            if(isInZone) { els.examCursor.style.backgroundColor = "#0f0"; els.examCursor.style.boxShadow = "0 0 10px #0f0"; } 
+            else { els.examCursor.style.backgroundColor = "#fff"; els.examCursor.style.boxShadow = "none"; }
             els.examScore.innerText = isInZone ? "100" : Math.floor(Math.random()*90);
         }, 16);
-
         els.examBtn.onclick = () => {
             isRunning = false; clearInterval(gameLoop);
-            
             let isInZone = els.examCursor.style.backgroundColor === "rgb(0, 255, 0)";
             let finalScore = isInZone ? 100 : Math.floor(Math.random() * 60 + 30);
-            
             els.examScore.innerText = finalScore;
-
             showResult(isInZone, isInZone ? "滿分！" : finalScore + " 分...", () => {
                 els.examGame.style.display = 'none';
                 if(isInZone) {
-                    // === 修改點：不再自動跳轉，而是顯示按鈕 ===
-                    speak("做得好。這是你應得的。不要驕傲，這只是學生的本分。", () => {
-                         makeButtons([{
-                            text: ">>> 24歲：科技園區", 
-                            special: 'continue',
-                            action: () => playTransition("24 歲", "科技園區 - 辦公室", sceneOffice)
-                        }]);
+                    speak("做得好。這是學生的本分。", () => {
+                         makeButtons([{ text: ">>> 24歲：科技園區", special: 'continue', action: () => playTransition("24 歲", "科技園區 - 辦公室", sceneOffice) }]);
                     });
-                }
-                else { 
-                    updateStress(40); speak(`只有 ${finalScore} 分？隔壁小華考了 100 分。你讓家族蒙羞。`, () => unlockEnding(6)); 
-                }
+                } else { updateStress(40); speak(`只有 ${finalScore} 分？你讓家族蒙羞。`, () => unlockEnding(6)); }
             });
         };
     }
 
     function sceneOffice() {
         setScene("💻", "無限加班");
-        speak("終於畢業了。歡迎來到職場。旁白：『小明，請立刻前往會議室，我們要檢討你的 KPI。』", () => {
+        speak("歡迎來到職場。旁白：『請立刻前往會議室，檢討你的 KPI。』", () => {
              makeButtons([
                 { text: "前往會議室 (服從)", action: sceneBugHydra },
                 { text: "去茶水間 (休息)", action: scenePantry }
@@ -508,7 +507,7 @@
     }
 
     function scenePantry() {
-        speak("小明，你走錯路了。會議室在左邊。茶水間沒有你的未來。立刻回頭。", () => {
+        speak("會議室在左邊。茶水間沒有你的未來。立刻回頭。", () => {
              makeButtons([
                 { text: "好吧，去會議室", action: sceneBugHydra },
                 { text: "不，我就要喝茶", action: () => unlockEnding(7) } 
@@ -517,22 +516,18 @@
     }
 
     function sceneBugHydra() {
-        speak("會議結束。老闆說系統有很多 Bug。現在，修好它們。全部修好。", () => {
+        speak("老闆說系統有很多 Bug。修好它們。全部。", () => {
              makeButtons([{ text: "開始 Debug (警告: 高壓)", action: startBugGame }]);
         });
     }
 
     function startBugGame() {
-        els.btns.innerHTML = ""; 
-        let bugsFixed = 0; let activeBugs = 1;
-        spawnBug();
-
+        els.btns.innerHTML = ""; let bugsFixed = 0; let activeBugs = 1; spawnBug();
         function spawnBug() {
             const bug = document.createElement('div'); bug.className = 'bug-btn';
             bug.innerText = "BUG"; bug.style.left = Math.random() * 80 + "%"; bug.style.top = Math.random() * 80 + "%";
             bug.onmousedown = (e) => {
-                e.stopPropagation(); bugsFixed++;
-                playTone(400 + Math.random()*400, 'square', 0.05);
+                e.stopPropagation(); bugsFixed++; playTone(400 + Math.random()*400, 'square', 0.05);
                 bug.remove(); activeBugs--;
                 if(bugsFixed < 15) { setTimeout(spawnBug, 50); setTimeout(spawnBug, 100); activeBugs += 2; } 
                 else { if(activeBugs === 0) endBugGame(); }
@@ -540,24 +535,91 @@
             };
             els.bugContainer.appendChild(bug);
         }
-
         const checkInterval = setInterval(() => {
-            if(els.bugContainer.childElementCount > 20) {
-                clearInterval(checkInterval); els.bugContainer.innerHTML = ''; updateStress(100);
-            }
-            if(bugsFixed >= 15 && els.bugContainer.childElementCount === 0) {
-                clearInterval(checkInterval); endBugGame();
-            }
+            if(els.bugContainer.childElementCount > 20) { clearInterval(checkInterval); els.bugContainer.innerHTML = ''; updateStress(100); }
+            if(bugsFixed >= 15 && els.bugContainer.childElementCount === 0) { clearInterval(checkInterval); endBugGame(); }
         }, 500);
-
         function endBugGame() { 
-            speak("你做到了。所有 Bug 都修好了。老闆很滿意。他說：『明天繼續保持。』你的完美人生，就此定格。", () => {
+            speak("Bug 修好了。老闆說：『明天繼續保持。』你的完美人生，就此定格...嗎？", () => {
                  makeButtons([
-                    { text: "繼續工作 (接受命運)", action: () => unlockEnding(2) },
-                    { text: "翻桌 (我不幹了！)", action: () => unlockEnding(1) } 
+                    { text: ">>> 28歲：夢想彼岸", special: 'continue', action: () => playTransition("28 歲", "夢想的虛擬空間", sceneDream) }
                 ]);
             });
         }
+    }
+
+    // === 新增：夢想彼岸 (輪迴或解脫) ===
+    function sceneDream() {
+        setScene("☁️", "夢想彼岸");
+        document.body.style.background = "#001"; // 夢境色
+        speak("這裡是你的夢想。你擁有了頭銜、房產、地位。你只需要不斷奔跑，維持這一切。", () => {
+            makeButtons([{ text: "開始奔跑 (維持成功)", action: startDreamGame }]);
+        });
+    }
+
+    function startDreamGame() {
+        els.btns.innerHTML = ""; els.dreamGame.style.display = 'block';
+        let successLevel = 50; 
+        let isRunning = true;
+
+        // 生成 Glitch 按鈕 (真正的出口)
+        setTimeout(() => {
+            els.dreamGlitch.style.display = 'block';
+            els.dreamGlitch.style.left = Math.random() * 80 + "%";
+            els.dreamGlitch.style.top = Math.random() * 80 + "%";
+            els.dreamGlitch.onclick = () => {
+                isRunning = false;
+                unlockEnding(3); // 真結局
+            };
+        }, 5000); // 5秒後出現
+
+        const gameLoop = setInterval(() => {
+            if(!isRunning) { clearInterval(gameLoop); return; }
+            
+            // 自動扣減 (跑步機原理)
+            successLevel -= 0.5 * currentDay; 
+            els.dreamFill.style.transform = `scaleX(${successLevel / 100})`;
+            
+            if(successLevel <= 0) {
+                isRunning = false;
+                els.dreamGame.style.display = 'none';
+                updateStress(100); // 夢想破滅
+            }
+        }, 50);
+
+        els.dreamBtn.onclick = () => {
+            successLevel += 5;
+            if(successLevel > 100) successLevel = 100;
+            playTone(800, 'sine', 0.1);
+            
+            // 如果玩家堅持跑了很久 (比如維持了 15 秒)，觸發輪迴結局
+            // 這裡簡化邏輯：如果玩家點擊次數夠多
+        };
+
+        // 輪迴觸發器
+        let clickCount = 0;
+        els.dreamBtn.addEventListener('mousedown', () => {
+            clickCount++;
+            if(clickCount > 30) { // 跑夠久了
+                isRunning = false;
+                clearInterval(gameLoop);
+                els.dreamGame.style.display = 'none';
+                triggerLoopEnding();
+            }
+        });
+    }
+
+    function triggerLoopEnding() {
+        speak("你做得很好。你維持了完美的一生。現在，讓我們為了更完美的明天，重新開始。", () => {
+             makeButtons([{ 
+                 text: "進入下一天 (Day " + (currentDay + 1) + ")", 
+                 special: 'continue',
+                 action: () => {
+                     localStorage.setItem('xiaoming_day', currentDay + 1);
+                     unlockEnding(2); // 這是結局卡，但點擊重新輪迴後會讀取 localStorage
+                 }
+             }]);
+        });
     }
 
     function showResult(win, text, callback) {
@@ -574,7 +636,7 @@
         const ending = endingsList.find(e => e.id === id);
         document.body.style.background = "#000"; els.gameStage.style.display = "none";
         const div = document.createElement('div'); div.style.textAlign = "center"; div.style.color = "gold"; div.style.zIndex = "2000";
-        div.innerHTML = `<h1 style="font-size: 4rem">${ending.icon}</h1><h2>結局 ${id}/7: ${ending.title}</h2><p>${ending.desc}</p><button class="btn" onclick="location.reload()">重新輪迴</button><br><br><button style="background:none; border:none; color:#666; text-decoration:underline" onclick="openCollectionFromEnd()">查看結局庫</button>`;
+        div.innerHTML = `<h1 style="font-size: 4rem">${ending.icon}</h1><h2>結局 ${id}/7: ${ending.title}</h2><p>${ending.desc}</p><button class="btn" onclick="location.reload()">繼續...</button><br><br><button style="background:none; border:none; color:#666; text-decoration:underline" onclick="openCollectionFromEnd()">查看結局庫</button>`;
         document.body.appendChild(div);
     }
 
